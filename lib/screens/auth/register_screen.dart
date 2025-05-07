@@ -32,6 +32,21 @@ class RegisterPage extends StatelessWidget {
       return;
     }
 
+    if (password.length < 6) {
+      _showError(context, 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (!email.contains('@')) {
+      _showError(context, 'Please enter a valid email address.');
+      return;
+    }
+
+    if (!_isValidDateFormat(birthdate)) {
+      _showError(context, 'Date of Birth must be in the format YYYY-MM-DD.');
+      return;
+    }
+
     final body = jsonEncode({
       'name': name,
       'email': email,
@@ -57,7 +72,19 @@ class RegisterPage extends StatelessWidget {
         _showError(context, error);
       }
     } catch (e) {
-      _showError(context, 'Connection error: $e');
+      _showError(context, 'Connection error');
+    }
+  }
+
+  bool _isValidDateFormat(String date) {
+    final regex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+    if (!regex.hasMatch(date)) return false;
+
+    try {
+      final parsedDate = DateTime.parse(date);
+      return parsedDate.year > 1900;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -128,7 +155,7 @@ class RegisterPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900), 
+                  constraints: const BoxConstraints(maxWidth: 900),
                   child: MyTextfield(
                     controller: phoneController,
                     hintText: 'Phone',

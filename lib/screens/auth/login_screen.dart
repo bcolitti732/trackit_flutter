@@ -61,7 +61,7 @@ class LoginPage extends StatelessWidget {
         _showError(context, error);
       }
     } catch (e) {
-      _showError(context, 'Connection error: $e');
+      _showError(context, 'Connection error');
     }
   }
 
@@ -174,7 +174,6 @@ class LoginPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 40),
-                // Divider and Google login section
                 Row(
                   children: [
                     Expanded(
@@ -201,7 +200,7 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 GestureDetector(
                   onTap: () {
-                    // TODO: Implement Google sign-in functionality
+                    // TODO: implementar el google
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Google sign-in clicked!')),
                     );
