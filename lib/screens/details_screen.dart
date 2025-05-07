@@ -15,7 +15,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar usuarios cuando el widget se monta
     Future.microtask(() {
       final provider = Provider.of<UserProvider>(context, listen: false);
       provider.loadUsers();

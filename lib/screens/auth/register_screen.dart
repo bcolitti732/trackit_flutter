@@ -108,8 +108,10 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.blueGrey[300] ?? Colors.grey,
+      backgroundColor: theme.colorScheme.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -118,80 +120,66 @@ class RegisterPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 20),
-                const Text(
-                  'Register',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.primary, width: 2),
+                  ),
+                  child: Text(
+                    'Register',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: MyTextfield(
-                    controller: nameController,
-                    hintText: 'Name',
-                    obscureText: false,
-                  ),
-                ),
+                
+                // Campos de texto
+                _buildTextField(context, nameController, 'Name'),
                 const SizedBox(height: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: MyTextfield(
-                    controller: emailController,
-                    hintText: 'Email',
-                    obscureText: false,
-                  ),
-                ),
+                _buildTextField(context, emailController, 'Email'),
                 const SizedBox(height: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: MyTextfield(
-                    controller: passwordController,
-                    hintText: 'Password',
-                    obscureText: true,
-                  ),
-                ),
+                _buildTextField(context, passwordController, 'Password', obscureText: true),
                 const SizedBox(height: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: MyTextfield(
-                    controller: phoneController,
-                    hintText: 'Phone',
-                    obscureText: false,
-                  ),
-                ),
+                _buildTextField(context, phoneController, 'Phone'),
                 const SizedBox(height: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: MyTextfield(
-                    controller: birthdateController,
-                    hintText: 'Date of Birth (YYYY-MM-DD)',
-                    obscureText: false,
-                  ),
-                ),
+                _buildTextField(context, birthdateController, 'Date of Birth (YYYY-MM-DD)'),
                 const SizedBox(height: 20),
+
+                // Botón de registro
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 600),
-                  child: MyButton(onTap: () => registerUser(context)),
+                  child: MyButton(
+                    text: 'Register',
+                    onTap: () => registerUser(context)),
                 ),
                 const SizedBox(height: 20),
+
+                // Enlace a la página de login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Already have an account?',
-                      style: TextStyle(color: Colors.white),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onBackground,
+                      ),
                     ),
                     const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => context.go('/login'),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => context.go('/login'),
+                        child: Text(
+                          'Sign In',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -201,6 +189,19 @@ class RegisterPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(BuildContext context, TextEditingController controller, String hintText, {bool obscureText = false}) {
+    final theme = Theme.of(context);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 900),
+      child: MyTextfield(
+        controller: controller,
+        hintText: hintText,
+        obscureText: obscureText,
       ),
     );
   }

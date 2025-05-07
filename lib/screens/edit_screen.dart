@@ -21,7 +21,6 @@ class _EditarScreenState extends State<EditScreen> {
   void initState() {
     super.initState();
     final user = Provider.of<UserProvider>(context, listen: false).currentUser;
-
     nomController.text = user.name;
     emailController.text = user.email;
     phoneController.text = user.phone;
@@ -41,140 +40,135 @@ class _EditarScreenState extends State<EditScreen> {
     final user = userProvider.currentUser;
 
     return LayoutWrapper(
-      title: 'Modify User',
+      title: 'Edit Profile',
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+
+                Card(
+                  elevation: 4,
+                  color: Theme.of(context).cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Modify User',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Fill out the form below to update your profile.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                Card(
+                  elevation: 4,
+                  color: Theme.of(context).cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Modify User',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                          _buildFormField(
+                            controller: nomController,
+                            label: 'Name',
+                            icon: Icons.person,
+                            validator: (value) =>
+                                value == null || value.isEmpty ? 'Name is required' : null,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Fill out the form below to modify a user in the system.',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          const SizedBox(height: 16),
+                          _buildFormField(
+                            controller: emailController,
+                            label: 'Email',
+                            icon: Icons.email,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Email cannot be empty';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Please enter a valid email address';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildFormField(
+                            controller: phoneController,
+                            label: 'Phone',
+                            icon: Icons.phone,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) =>
+                                value == null || value.isEmpty ? 'Phone is required' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Date of Birth: ${user.birthdate}',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                final success = await userProvider.modificarUsuari(
+                                  user.id,
+                                  nomController.text,
+                                  emailController.text,
+                                  phoneController.text,
+                                  user.birthdate,
+                                  user.password,
+                                );
+
+                                if (success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('User updated successfully!'),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.save),
+                            label: const Text(
+                              'UPDATE USER',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildFormField(
-                              controller: nomController,
-                              label: 'Name',
-                              icon: Icons.person,
-                              validator: (value) =>
-                                  value == null || value.isEmpty ? 'Name is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildFormField(
-                              controller: emailController,
-                              label: 'Email',
-                              icon: Icons.email,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Email cannot be empty';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Please enter a valid email address';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            _buildFormField(
-                              controller: phoneController,
-                              label: 'Phone',
-                              icon: Icons.phone,
-                              keyboardType: TextInputType.phone,
-                              validator: (value) =>
-                                  value == null || value.isEmpty ? 'Phone is required' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Date of Birth: ${user.birthdate}',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 32),
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate()) {
-                                  final success = await userProvider.modificarUsuari(
-                                    user.id,
-                                    nomController.text,
-                                    emailController.text,
-                                    phoneController.text,
-                                    user.birthdate,
-                                    user.password,
-                                  );
-
-                                  if (success && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text('User updated successfully!'),
-                                        backgroundColor: Colors.green,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.save),
-                              label: const Text(
-                                'UPDATE USER',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -195,11 +189,9 @@ class _EditarScreenState extends State<EditScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Theme.of(context).colorScheme.surfaceVariant,
       ),
       obscureText: obscureText,
       keyboardType: keyboardType,

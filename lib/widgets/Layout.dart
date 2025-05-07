@@ -33,6 +33,14 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    final currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath;
+    final newIndex = _pages.indexWhere((page) => page['route'] == currentRoute);
+    if (newIndex != -1 && newIndex != _currentIndex) {
+      setState(() {
+        _currentIndex = newIndex;
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_pages[_currentIndex]['title']),

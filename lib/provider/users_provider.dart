@@ -32,7 +32,6 @@ class UserProvider with ChangeNotifier {
 
   void setCurrentUser(User user) {
     currentUser = user;
-    print('Usuario actualizado: ${currentUser.toJson()}');
     notifyListeners();
   }
 
@@ -41,12 +40,9 @@ class UserProvider with ChangeNotifier {
   _setError(null);
 
   try {
-    print('Cargando usuarios...');
     _users = await UserService.getUsers();
-    print('Usuarios cargados: $_users');
   } catch (e) {
     _setError('Error loading users: $e');
-    print('Error al cargar usuarios: $e');
     _users = [];
   } finally {
     _setLoading(false);

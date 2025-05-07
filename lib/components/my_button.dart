@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class MyButton extends StatefulWidget {
   final Function()? onTap;
+  final String text;
 
-  const MyButton({super.key, required this.onTap});
+  const MyButton({super.key, required this.onTap, required this.text});
 
   @override
   _MyButtonState createState() => _MyButtonState();
@@ -33,7 +34,7 @@ class _MyButtonState extends State<MyButton> {
           ),
           child: Center(
             child: Text(
-              "Sign In",
+              widget.text,
               style: TextStyle(
                 color: _isHovered ? Colors.blue[700] : Colors.blue[500],
                 fontWeight: FontWeight.bold,
