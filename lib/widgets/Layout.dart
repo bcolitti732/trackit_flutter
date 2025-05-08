@@ -20,7 +20,6 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
 
   final List<Map<String, dynamic>> _pages = [
     {'title': 'Home', 'route': '/', 'icon': Icons.home},
-    {'title': 'Users', 'route': '/details', 'icon': Icons.info_outline},
     {'title': 'Profile', 'route': '/profile', 'icon': Icons.account_circle},
   ];
 

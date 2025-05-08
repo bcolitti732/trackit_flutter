@@ -1,7 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:seminari_flutter/screens/auth/login_screen.dart';
 import 'package:seminari_flutter/screens/auth/register_screen.dart';
-import 'package:seminari_flutter/screens/details_screen.dart';
 import 'package:seminari_flutter/screens/edit_screen.dart';
 import 'package:seminari_flutter/screens/home_screen.dart';
 import 'package:seminari_flutter/screens/perfil_screen.dart';
@@ -18,12 +17,6 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       builder: (context, state) => const HomeScreen(),
       routes: [
-        GoRoute(
-          path: 'details',
-          builder: (context, state) => const DetailsScreen(),
-          routes: [
-          ],
-        ),
         GoRoute(
           path: 'edit',
           builder: (context, state) => const EditScreen(),

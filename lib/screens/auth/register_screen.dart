@@ -5,9 +5,14 @@ import 'package:http/http.dart' as http;
 import 'package:seminari_flutter/components/my_textfield.dart';
 import 'package:seminari_flutter/components/my_button.dart';
 
-class RegisterPage extends StatelessWidget {
-  RegisterPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -106,6 +111,20 @@ class RegisterPage extends StatelessWidget {
     );
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        birthdateController.text = picked.toIso8601String().split('T').first;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -137,7 +156,7 @@ class RegisterPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Campos de texto
                 _buildTextField(context, nameController, 'Name'),
                 const SizedBox(height: 10),
@@ -147,7 +166,18 @@ class RegisterPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 _buildTextField(context, phoneController, 'Phone'),
                 const SizedBox(height: 10),
-                _buildTextField(context, birthdateController, 'Date of Birth (YYYY-MM-DD)'),
+
+                // Campo de fecha con DatePicker
+                GestureDetector(
+                  onTap: () => _selectDate(context),
+                  child: AbsorbPointer(
+                    child: _buildTextField(
+                      context,
+                      birthdateController,
+                      'Date of Birth (YYYY-MM-DD)',
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
 
                 // Botón de registro
@@ -155,7 +185,8 @@ class RegisterPage extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 600),
                   child: MyButton(
                     text: 'Register',
-                    onTap: () => registerUser(context)),
+                    onTap: () => registerUser(context),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
