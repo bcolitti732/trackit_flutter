@@ -17,26 +17,26 @@ class UserService {
   }
 
   static Future<List<User>> getUsers({int page = 1, int limit = 10}) async {
-  try {
-    final url = Uri.parse('$baseUrl?page=$page&limit=$limit');
+    try {
+      final url = Uri.parse('$baseUrl?page=$page&limit=$limit');
 
-    final response = await http.get(
-      url,
-      headers: {'Content-Type': 'application/json'},
-    );
+      final response = await http.get(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
 
-      final List<dynamic> usersJson = data['data'];
-      return usersJson.map((json) => User.fromJson(json)).toList();
-    } else {
+        final List<dynamic> usersJson = data['data'];
+        return usersJson.map((json) => User.fromJson(json)).toList();
+      } else {
+        throw Exception('Error al obtener usuarios');
+      }
+    } catch (e) {
       throw Exception('Error al obtener usuarios');
     }
-  } catch (e) {
-    throw Exception('Error al obtener usuarios');
   }
-}
 
   static Future<User> createUser(User user) async {
     final response = await http.post(
@@ -87,31 +87,37 @@ class UserService {
   }
 
   static Future<User?> modificaUser(User user) async {
-  try {
-    final body = {
-      "_id": user.id,
-      "name": user.name,
-      "email": user.email,
-      "password": user.password,
-      "phone": user.phone,
-      "birthdate": DateFormat('yyyy-MM-dd').format(DateTime.parse(user.birthdate)),
-    };
+    try {
+      final body = {
+        "_id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "birthdate": user.birthdate,
+        "packets": user.packets.map((packet) => packet.toJson()).toList(),
+      };
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/${user.id}'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+      print('Request body: ${jsonEncode(body)}');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return User.fromJson(data);
-    } else {
-      return null;
+      final response = await http.put(
+        Uri.parse('$baseUrl/${user.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return User.fromJson(data);
+      } else {
+        throw Exception(
+          'Error al modificar usuario: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error al modificar usuario: $e');
     }
-  } catch (e) {
-    throw Exception('Error al modificar usuario');
   }
-}
-
 }

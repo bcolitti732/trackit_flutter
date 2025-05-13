@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/widgets/Layout.dart';
 
 class EditScreen extends StatefulWidget {
@@ -48,7 +47,6 @@ class _EditarScreenState extends State<EditScreen> {
             constraints: const BoxConstraints(maxWidth: 600),
             child: Column(
               children: [
-
                 Card(
                   elevation: 4,
                   color: Theme.of(context).cardColor,
@@ -70,7 +68,6 @@ class _EditarScreenState extends State<EditScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
                 Card(
                   elevation: 4,
                   color: Theme.of(context).cardColor,
@@ -120,7 +117,7 @@ class _EditarScreenState extends State<EditScreen> {
                               const Icon(Icons.calendar_today, color: Colors.grey),
                               const SizedBox(width: 8),
                               Text(
-                                'Date of Birth: ${user.birthdate}',
+                                'Date of Birth: ${user.birthdate}', // Mostramos la fecha de nacimiento sin permitir edición
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -129,13 +126,11 @@ class _EditarScreenState extends State<EditScreen> {
                           ElevatedButton.icon(
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
+                                print('Updating user...');
                                 final success = await userProvider.modificarUsuari(
-                                  user.id,
                                   nomController.text,
                                   emailController.text,
                                   phoneController.text,
-                                  user.birthdate,
-                                  user.password,
                                 );
 
                                 if (success && context.mounted) {
@@ -143,6 +138,17 @@ class _EditarScreenState extends State<EditScreen> {
                                     SnackBar(
                                       content: const Text('User updated successfully!'),
                                       backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Failed to update user.'),
+                                      backgroundColor: Colors.red,
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
