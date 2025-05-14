@@ -3,6 +3,7 @@ import 'package:seminari_flutter/screens/auth/login_screen.dart';
 import 'package:seminari_flutter/screens/auth/register_screen.dart';
 import 'package:seminari_flutter/screens/edit_screen.dart';
 import 'package:seminari_flutter/screens/home_screen.dart';
+import 'package:seminari_flutter/screens/contactList_screen.dart';
 import 'package:seminari_flutter/screens/perfil_screen.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 
@@ -11,6 +12,13 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/login', builder: (context, state) => LoginPage()),
     GoRoute(path: '/register', builder: (context, state) => RegisterPage()),
+    GoRoute(
+      path: '/contactList',
+      builder: (context, state) {
+        
+        return ContactListScreen();
+      },
+    ),
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/',
