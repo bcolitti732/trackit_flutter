@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:seminari_flutter/components/my_textfield.dart';
@@ -22,33 +23,30 @@ class _RegisterPageState extends State<RegisterPage> {
   final String baseUrl = 'http://localhost:4000/api/auth/register';
 
   void registerUser(BuildContext context) async {
+    final loc = AppLocalizations.of(context)!;
     final name = nameController.text;
     final email = emailController.text;
     final password = passwordController.text;
     final phone = phoneController.text;
     final birthdate = birthdateController.text;
 
-    if (name.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        phone.isEmpty ||
-        birthdate.isEmpty) {
-      _showError(context, 'All fields are required.');
+    if (name.isEmpty || email.isEmpty || password.isEmpty || phone.isEmpty || birthdate.isEmpty) {
+      _showError(context, loc.allFieldsRequired);
       return;
     }
 
     if (password.length < 6) {
-      _showError(context, 'Password must be at least 6 characters long.');
+      _showError(context, loc.passwordMinLength);
       return;
     }
 
     if (!email.contains('@')) {
-      _showError(context, 'Please enter a valid email address.');
+      _showError(context, loc.invalidEmail);
       return;
     }
 
     if (!_isValidDateFormat(birthdate)) {
-      _showError(context, 'Date of Birth must be in the format YYYY-MM-DD.');
+      _showError(context, loc.invalidDateFormat);
       return;
     }
 
@@ -69,22 +67,21 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User registered successfully!')),
+          SnackBar(content: Text(loc.userRegistered)),
         );
         context.go('/login');
       } else {
-        final error = jsonDecode(response.body)['message'] ?? 'Unknown error';
+        final error = jsonDecode(response.body)['message'] ?? loc.unknownError;
         _showError(context, error);
       }
     } catch (e) {
-      _showError(context, 'Connection error');
+      _showError(context, loc.connectionError);
     }
   }
 
   bool _isValidDateFormat(String date) {
     final regex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
     if (!regex.hasMatch(date)) return false;
-
     try {
       final parsedDate = DateTime.parse(date);
       return parsedDate.year > 1900;
@@ -94,17 +91,16 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _showError(BuildContext context, String message) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: Text(loc.error),
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(loc.ok),
           ),
         ],
       ),
@@ -128,6 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -147,7 +144,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     border: Border.all(color: theme.colorScheme.primary, width: 2),
                   ),
                   child: Text(
-                    'Register',
+                    loc.register,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: theme.colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.bold,
@@ -156,46 +153,34 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Campos de texto
-                _buildTextField(context, nameController, 'Name'),
+                _buildTextField(context, nameController, loc.name),
                 const SizedBox(height: 10),
-                _buildTextField(context, emailController, 'Email'),
+                _buildTextField(context, emailController, loc.email),
                 const SizedBox(height: 10),
-                _buildTextField(context, passwordController, 'Password', obscureText: true),
+                _buildTextField(context, passwordController, loc.password, obscureText: true),
                 const SizedBox(height: 10),
-                _buildTextField(context, phoneController, 'Phone'),
+                _buildTextField(context, phoneController, loc.phone),
                 const SizedBox(height: 10),
-
-                // Campo de fecha con DatePicker
                 GestureDetector(
                   onTap: () => _selectDate(context),
                   child: AbsorbPointer(
-                    child: _buildTextField(
-                      context,
-                      birthdateController,
-                      'Date of Birth (YYYY-MM-DD)',
-                    ),
+                    child: _buildTextField(context, birthdateController, loc.dateOfBirthHint),
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Botón de registro
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 600),
                   child: MyButton(
-                    text: 'Register',
+                    text: loc.register,
                     onTap: () => registerUser(context),
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Enlace a la página de login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account?',
+                      loc.alreadyHaveAccount,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onBackground,
                       ),
@@ -206,7 +191,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: GestureDetector(
                         onTap: () => context.go('/login'),
                         child: Text(
-                          'Sign In',
+                          loc.signIn,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
@@ -225,8 +210,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildTextField(BuildContext context, TextEditingController controller, String hintText, {bool obscureText = false}) {
-    final theme = Theme.of(context);
-
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 900),
       child: MyTextfield(

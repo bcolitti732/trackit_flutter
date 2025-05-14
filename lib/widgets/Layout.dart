@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LayoutWrapper extends StatefulWidget {
   final Widget child;
@@ -19,8 +20,8 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
   int _currentIndex = 0;
 
   final List<Map<String, dynamic>> _pages = [
-    {'title': 'Home', 'route': '/', 'icon': Icons.home},
-    {'title': 'Profile', 'route': '/profile', 'icon': Icons.account_circle},
+    {'route': '/', 'icon': Icons.home},
+    {'route': '/profile', 'icon': Icons.account_circle},
   ];
 
   void _onItemTapped(int index) {
@@ -40,9 +41,13 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
       });
     }
 
+    // Cargar los títulos traducidos
+    final homeTitle = AppLocalizations.of(context)!.home;
+    final profileTitle = AppLocalizations.of(context)!.profile;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_pages[_currentIndex]['title']),
+        title: Text(_currentIndex == 0 ? homeTitle : profileTitle),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 2,
@@ -57,12 +62,16 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Theme.of(context).colorScheme.onSurface,
-        items: _pages.map((page) {
-          return BottomNavigationBarItem(
-            icon: Icon(page['icon']),
-            label: page['title'],
-          );
-        }).toList(),
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(_pages[0]['icon']),
+            label: homeTitle,  // Usar el texto traducido
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(_pages[1]['icon']),
+            label: profileTitle,  // Usar el texto traducido
+          ),
+        ],
       ),
     );
   }

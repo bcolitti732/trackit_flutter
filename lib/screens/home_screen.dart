@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../provider/users_provider.dart';
 import '../widgets/Layout.dart';
@@ -12,19 +13,16 @@ class HomeScreen extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final String username = userProvider.currentUser.name;
 
-    // Fetch packets by their status (Almacen and Reparto)
-    final almacenPackets =
-        userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'almacén')
-            .toList();
+    final almacenPackets = userProvider.currentUser.packets
+        .where((packet) => packet.status.toLowerCase() == 'almacén')
+        .toList();
 
-    final repartoPackets =
-        userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'reparto')
-            .toList();
+    final repartoPackets = userProvider.currentUser.packets
+        .where((packet) => packet.status.toLowerCase() == 'reparto')
+        .toList();
 
     return LayoutWrapper(
-      title: 'Home',
+      title: AppLocalizations.of(context)!.homeTitle,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -34,17 +32,14 @@ class HomeScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Left column for Almacen packets
                   _buildPacketColumn(
                     context,
-                    'Packages in Storage',
+                    AppLocalizations.of(context)!.packagesInStorage,
                     almacenPackets,
                   ),
-
-                  // Right column for Reparto packets
                   _buildPacketColumn(
                     context,
-                    'Packages in Delivery',
+                    AppLocalizations.of(context)!.packagesInDelivery,
                     repartoPackets,
                   ),
                 ],
@@ -56,7 +51,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Create a column of packets (Almacen or Reparto)
   Widget _buildPacketColumn(
     BuildContext context,
     String title,
@@ -68,28 +62,26 @@ class HomeScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          // If there are no packets, display a message
           if (packets.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
-                'No packages in this category.',
+                AppLocalizations.of(context)!.noPackages,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-          // Display each packet in an elevated card
           ...packets.map((packet) => _buildPacketCard(context, packet)),
         ],
       ),
     );
   }
 
-  // Create an elevated card for each packet
   Widget _buildPacketCard(BuildContext context, Packet packet) {
     return Card(
       elevation: 8,
@@ -103,16 +95,18 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               packet.name,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               packet.description,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -121,14 +115,16 @@ class HomeScreen extends StatelessWidget {
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: const Text('Package Details'),
+                      title: Text(AppLocalizations.of(context)!.packageDetails),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Origin: ${packet.origin}'),
+                          Text(
+                              '${AppLocalizations.of(context)!.origin}: ${packet.origin}'),
                           const SizedBox(height: 8),
-                          Text('Destination: ${packet.destination}'),
+                          Text(
+                              '${AppLocalizations.of(context)!.destination}: ${packet.destination}'),
                         ],
                       ),
                       actions: [
@@ -136,14 +132,14 @@ class HomeScreen extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Close'),
+                          child: Text(AppLocalizations.of(context)!.close),
                         ),
                       ],
                     );
                   },
                 );
               },
-              child: const Text('View Details'),
+              child: Text(AppLocalizations.of(context)!.viewDetails),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,

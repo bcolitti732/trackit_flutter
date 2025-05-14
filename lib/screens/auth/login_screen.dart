@@ -9,6 +9,7 @@ import 'package:seminari_flutter/components/square_title.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/models/user.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
@@ -19,11 +20,12 @@ class LoginPage extends StatelessWidget {
   final String baseUrl = 'http://localhost:4000/api/auth/login';
 
   void signUserIn(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
     final email = emailController.text;
     final password = passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showError(context, 'Email and password cannot be empty.');
+      _showError(context, localizations.emptyFields);
       return;
     }
 
@@ -52,31 +54,33 @@ class LoginPage extends StatelessWidget {
         userProvider.setCurrentUser(User.fromJson(userData));
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
+          SnackBar(content: Text(localizations.loginSuccess)),
         );
 
         context.go('/');
       } else {
-        final error = jsonDecode(response.body)['message'] ?? 'Invalid credentials.';
+        final error = jsonDecode(response.body)['message'] ?? localizations.invalidCredentials;
         _showError(context, error);
       }
     } catch (e) {
-      _showError(context, 'Connection error');
+      _showError(context, localizations.connectionError);
     }
   }
 
   void _showError(BuildContext context, String message) {
+    final localizations = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: Text(localizations.error),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: const Text('OK'),
+            child: Text(localizations.ok),
           ),
         ],
       ),
@@ -84,112 +88,103 @@ class LoginPage extends StatelessWidget {
   }
 
   @override
-Widget build(BuildContext context) {
-  final theme = Theme.of(context);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localizations = AppLocalizations.of(context)!;
 
-  return Scaffold(
-    backgroundColor: theme.scaffoldBackgroundColor,
-    body: SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 750),
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                color: theme.cardColor,
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset('lib/images/image.png', height: 100),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Welcome back, we missed you!',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Please log in to continue',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 24),
-                      MyTextfield(
-                        controller: emailController,
-                        hintText: 'Email',
-                        obscureText: false,
-                      ),
-                      const SizedBox(height: 16),
-                      MyTextfield(
-                        controller: passwordController,
-                        hintText: 'Password',
-                        obscureText: true,
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'Forgot your password?',
-                          style: TextStyle(color: theme.colorScheme.primary),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 750),
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  color: theme.cardColor,
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset('lib/images/image.png', height: 100),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      MyButton(
-                        text: 'Login',
-                        onTap: () => signUserIn(context),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Not a member?',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                          const SizedBox(width: 4),
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: () => context.go('/register'),
-                              child: Text(
-                                'Register',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
+                        const SizedBox(height: 20),
+                        Text(
+                          localizations.welcomeBack,
+                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          localizations.pleaseLogin,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 24),
+                        MyTextfield(
+                          controller: emailController,
+                          hintText: localizations.email,
+                          obscureText: false,
+                        ),
+                        const SizedBox(height: 16),
+                        MyTextfield(
+                          controller: passwordController,
+                          hintText: localizations.password,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 24),
+                        MyButton(
+                          text: localizations.login,
+                          onTap: () => signUserIn(context),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(localizations.notMember, style: theme.textTheme.bodyMedium),
+                            const SizedBox(width: 4),
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () => context.go('/register'),
+                                child: Text(
+                                  localizations.register,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.grey[400])),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10.0),
-                            child: Text('Or continue with'),
-                          ),
-                          Expanded(child: Divider(color: Colors.grey[400])),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Google sign-in clicked!')),
-                          );
-                        },
-                        child: SquareTitle(imagePath: 'lib/images/google.png', size: 50),
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[400])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              child: Text(localizations.orContinueWith),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[400])),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(localizations.googleSignInClicked)),
+                            );
+                          },
+                          child: SquareTitle(imagePath: 'lib/images/google.png', size: 50),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -197,7 +192,6 @@ Widget build(BuildContext context) {
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

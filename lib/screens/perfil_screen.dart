@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
 import 'package:seminari_flutter/provider/users_provider.dart';
+import 'package:seminari_flutter/services/auth_service.dart';
+import 'package:seminari_flutter/provider/locale_provider.dart';
 import '../widgets/Layout.dart';
-import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,10 +34,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final localizations = AppLocalizations.of(context)!;
     final currentUser = userProvider.currentUser;
 
     return LayoutWrapper(
-      title: 'Profile',
+      title: localizations.profile,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Center(
@@ -76,7 +79,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 Text(
                   currentUser.name,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -94,24 +96,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildCard(
                   context,
-                  title: 'Profile Details',
+                  title: localizations.profileDetails,
                   children: [
                     _buildProfileItem(
                       context,
                       Icons.phone,
-                      'Phone',
+                      localizations.phone,
                       currentUser.phone.isNotEmpty
                           ? currentUser.phone
-                          : 'Not registered',
+                          : localizations.notRegistered,
                     ),
                     const Divider(),
                     _buildProfileItem(
                       context,
                       Icons.calendar_today,
-                      'Date of Birth',
+                      localizations.dateOfBirth,
                       currentUser.birthdate.isNotEmpty
                           ? currentUser.birthdate
-                          : 'Not registered',
+                          : localizations.notRegistered,
                     ),
                   ],
                 ),
@@ -119,13 +121,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildCard(
                   context,
-                  title: 'Account Settings',
+                  title: localizations.accountSettings,
                   children: [
                     _buildSettingItem(
                       context,
                       Icons.edit,
-                      'Edit Profile',
-                      'Update your personal information',
+                      localizations.editProfile,
+                      localizations.updatePersonalInfo,
                       onTap: () => context.go('/edit'),
                     ),
                     const Divider(),
@@ -133,7 +135,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode',
+                          themeProvider.isDarkMode
+                              ? localizations.darkMode
+                              : localizations.lightMode,
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         Switch(
@@ -143,10 +147,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
+                    const Divider(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          localizations.language,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        DropdownButton<Locale>(
+                          value: context.watch<LocaleProvider>().locale,
+                          onChanged: (locale) {
+                            if (locale != null) {
+                              context.read<LocaleProvider>().setLocale(locale);
+                            }
+                          },
+                          items:
+                              L10n.supportedLocales.map((locale) {
+                                final flag =
+                                    locale.languageCode == 'es'
+                                        ? '🇪🇸'
+                                        : locale.languageCode == 'ca'
+                                        ? '🇨🇦'
+                                        : '🇺🇸';
+                                return DropdownMenuItem(
+                                  value: locale,
+                                  child: Text(flag),
+                                );
+                              }).toList(),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 32),
 
+                const SizedBox(height: 32),
                 ElevatedButton.icon(
                   onPressed: () async {
                     try {
@@ -155,12 +190,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       context.go('/login');
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error logging out: $e')),
+                        SnackBar(
+                          content: Text('${localizations.logoutError}: $e'),
+                        ),
                       );
                     }
                   },
                   icon: const Icon(Icons.logout),
-                  label: const Text('LOG OUT'),
+                  label: Text(localizations.logout),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,

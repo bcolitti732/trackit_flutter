@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/widgets/Layout.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EditScreen extends StatefulWidget {
   const EditScreen({super.key});
@@ -39,7 +40,7 @@ class _EditarScreenState extends State<EditScreen> {
     final user = userProvider.currentUser;
 
     return LayoutWrapper(
-      title: 'Edit Profile',
+      title: AppLocalizations.of(context)!.editProfile,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Center(
@@ -56,11 +57,11 @@ class _EditarScreenState extends State<EditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Modify User',
+                        Text(AppLocalizations.of(context)!.modifyUser,
                             style: Theme.of(context).textTheme.headlineSmall),
                         const SizedBox(height: 8),
                         Text(
-                          'Fill out the form below to update your profile.',
+                          AppLocalizations.of(context)!.fillForm,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
@@ -81,7 +82,7 @@ class _EditarScreenState extends State<EditScreen> {
                         children: [
                           _buildFormField(
                             controller: nomController,
-                            label: 'Name',
+                            label: AppLocalizations.of(context)!.name,
                             icon: Icons.person,
                             validator: (value) =>
                                 value == null || value.isEmpty ? 'Name is required' : null,
@@ -89,7 +90,7 @@ class _EditarScreenState extends State<EditScreen> {
                           const SizedBox(height: 16),
                           _buildFormField(
                             controller: emailController,
-                            label: 'Email',
+                            label: AppLocalizations.of(context)!.email,
                             icon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
@@ -105,7 +106,7 @@ class _EditarScreenState extends State<EditScreen> {
                           const SizedBox(height: 16),
                           _buildFormField(
                             controller: phoneController,
-                            label: 'Phone',
+                            label: AppLocalizations.of(context)!.phone,
                             icon: Icons.phone,
                             keyboardType: TextInputType.phone,
                             validator: (value) =>
@@ -117,7 +118,7 @@ class _EditarScreenState extends State<EditScreen> {
                               const Icon(Icons.calendar_today, color: Colors.grey),
                               const SizedBox(width: 8),
                               Text(
-                                'Date of Birth: ${user.birthdate}', // Mostramos la fecha de nacimiento sin permitir edición
+                                '${AppLocalizations.of(context)!.dob}: ${user.birthdate}',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -136,7 +137,7 @@ class _EditarScreenState extends State<EditScreen> {
                                 if (success && context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('User updated successfully!'),
+                                      content: Text(AppLocalizations.of(context)!.userUpdated),
                                       backgroundColor: Colors.green,
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
@@ -147,7 +148,7 @@ class _EditarScreenState extends State<EditScreen> {
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('Failed to update user.'),
+                                      content: Text(AppLocalizations.of(context)!.updateFailed),
                                       backgroundColor: Colors.red,
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
@@ -159,10 +160,8 @@ class _EditarScreenState extends State<EditScreen> {
                               }
                             },
                             icon: const Icon(Icons.save),
-                            label: const Text(
-                              'UPDATE USER',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                            label: Text(AppLocalizations.of(context)!.updateUser,
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: Theme.of(context).colorScheme.primary,
