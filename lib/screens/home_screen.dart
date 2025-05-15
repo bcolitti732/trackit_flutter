@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/users_provider.dart';
-import '../widgets/Layout.dart';
 import '../models/packet.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -23,32 +22,29 @@ class HomeScreen extends StatelessWidget {
             .where((packet) => packet.status.toLowerCase() == 'reparto')
             .toList();
 
-    return LayoutWrapper(
-      title: 'Home',
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left column for Almacen packets
-                  _buildPacketColumn(
-                    context,
-                    'Packages in Storage',
-                    almacenPackets,
-                  ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Left column for Almacen packets
+                _buildPacketColumn(
+                  context,
+                  'Packages in Storage',
+                  almacenPackets,
+                ),
 
-                  // Right column for Reparto packets
-                  _buildPacketColumn(
-                    context,
-                    'Packages in Delivery',
-                    repartoPackets,
-                  ),
-                ],
-              ),
+                // Right column for Reparto packets
+                _buildPacketColumn(
+                  context,
+                  'Packages in Delivery',
+                  repartoPackets,
+                ),
+              ],
             ),
           ),
         ),

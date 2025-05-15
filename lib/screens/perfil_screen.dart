@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
 import 'package:seminari_flutter/provider/users_provider.dart';
-import '../widgets/Layout.dart';
 import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -34,147 +33,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final currentUser = userProvider.currentUser;
 
-    return LayoutWrapper(
-      title: 'Profile',
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Hero(
-                    tag: 'profile-pic',
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 3,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: _pickImage,
+                child: Hero(
+                  tag: 'profile-pic',
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 3,
                       ),
-                      child: CircleAvatar(
-                        radius: 70,
-                        backgroundImage:
-                            _image != null
-                                ? FileImage(_image!)
-                                : const AssetImage('lib/images/ronaldinho.jpg')
-                                    as ImageProvider,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                Text(
-                  currentUser.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  currentUser.email,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-
-                _buildCard(
-                  context,
-                  title: 'Profile Details',
-                  children: [
-                    _buildProfileItem(
-                      context,
-                      Icons.phone,
-                      'Phone',
-                      currentUser.phone.isNotEmpty
-                          ? currentUser.phone
-                          : 'Not registered',
-                    ),
-                    const Divider(),
-                    _buildProfileItem(
-                      context,
-                      Icons.calendar_today,
-                      'Date of Birth',
-                      currentUser.birthdate.isNotEmpty
-                          ? currentUser.birthdate
-                          : 'Not registered',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                _buildCard(
-                  context,
-                  title: 'Account Settings',
-                  children: [
-                    _buildSettingItem(
-                      context,
-                      Icons.edit,
-                      'Edit Profile',
-                      'Update your personal information',
-                      onTap: () => context.go('/edit'),
-                    ),
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        Switch(
-                          value: themeProvider.isDarkMode,
-                          onChanged: (_) => themeProvider.toggleTheme(),
-                          activeColor: Theme.of(context).colorScheme.primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final authService = AuthService();
-                      authService.logout();
-                      context.go('/login');
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error logging out: $e')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('LOG OUT'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    child: CircleAvatar(
+                      radius: 70,
+                      backgroundImage:
+                          _image != null
+                              ? FileImage(_image!)
+                              : const AssetImage('lib/images/ronaldinho.jpg')
+                                  as ImageProvider,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                currentUser.name,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                currentUser.email,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+
+              _buildCard(
+                context,
+                title: 'Profile Details',
+                children: [
+                  _buildProfileItem(
+                    context,
+                    Icons.phone,
+                    'Phone',
+                    currentUser.phone.isNotEmpty
+                        ? currentUser.phone
+                        : 'Not registered',
+                  ),
+                  const Divider(),
+                  _buildProfileItem(
+                    context,
+                    Icons.calendar_today,
+                    'Date of Birth',
+                    currentUser.birthdate.isNotEmpty
+                        ? currentUser.birthdate
+                        : 'Not registered',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              _buildCard(
+                context,
+                title: 'Account Settings',
+                children: [
+                  _buildSettingItem(
+                    context,
+                    Icons.edit,
+                    'Edit Profile',
+                    'Update your personal information',
+                    onTap: () => context.go('/edit'),
+                  ),
+                  const Divider(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      Switch(
+                        value: themeProvider.isDarkMode,
+                        onChanged: (_) => themeProvider.toggleTheme(),
+                        activeColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final authService = AuthService();
+                    authService.logout();
+                    context.go('/login');
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error logging out: $e')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('LOG OUT'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

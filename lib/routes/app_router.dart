@@ -6,23 +6,32 @@ import 'package:seminari_flutter/screens/home_screen.dart';
 import 'package:seminari_flutter/screens/contactList_screen.dart';
 import 'package:seminari_flutter/screens/perfil_screen.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
+import 'package:seminari_flutter/widgets/Layout.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AuthService().isLoggedIn ? '/' : '/login',
   routes: [
-    GoRoute(path: '/login', builder: (context, state) => LoginPage()),
-    GoRoute(path: '/register', builder: (context, state) => RegisterPage()),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => LoginPage(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => RegisterPage(),
+    ),
     GoRoute(
       path: '/contactList',
-      builder: (context, state) {
-        
-        return ContactListScreen();
-      },
+      builder: (context, state) => LayoutWrapper(
+        title: 'Chat',
+        child: ContactListScreen(),
+      ),
     ),
-    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => LayoutWrapper(
+        title: 'Home',
+        child: HomeScreen(),
+      ),
       routes: [
         GoRoute(
           path: 'edit',
@@ -30,7 +39,10 @@ final GoRouter appRouter = GoRouter(
         ),
         GoRoute(
           path: 'profile',
-          builder: (context, state) => const ProfileScreen(),
+          builder: (context, state) => LayoutWrapper(
+            title: 'Profile',
+            child: ProfileScreen(),
+          ),
         ),
       ],
     ),
