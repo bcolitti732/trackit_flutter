@@ -124,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ElevatedButton.icon(
                   onPressed: () async {
                     try {
-                      final authService = AuthService();
+                      final authService = Provider.of<AuthService>(context, listen: false);
                       authService.logout();
                       context.go('/login');
                     } catch (e) {

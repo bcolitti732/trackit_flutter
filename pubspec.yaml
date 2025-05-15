@@ -43,6 +43,7 @@ dependencies:
   http: ^1.2.1   
   shared_preferences: ^2.2.3
   fastor_app_ui_widget: ^1.3.61
+  dio: ^5.0.0
 
 dev_dependencies:
   flutter_test:

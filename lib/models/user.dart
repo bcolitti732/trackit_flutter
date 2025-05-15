@@ -7,6 +7,7 @@ class User {
   final String password;
   final String phone;
   final String birthdate;
+  final bool isProfileComplete;
 
   User({
     this.id,
@@ -15,6 +16,7 @@ class User {
     required this.password,
     required this.phone,
     required this.birthdate,
+    required this.isProfileComplete,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -31,17 +33,19 @@ class User {
       password: json['password'] ?? '',
       phone: json['phone'] ?? '',
       birthdate: formattedDate,
+      isProfileComplete: json['isProfileComplete'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson({bool includePassword = false, bool includeId = false}) {
     return {
-      if (includeId && id != null) '_id': id, // Solo incluir el ID si se solicita
+      if (includeId && id != null) '_id': id,
       'name': name,
       'email': email,
       'phone': phone,
       'birthdate': birthdate,
-      if (includePassword) 'password': password, // Solo incluir la contraseña si se solicita
+      'isProfileComplete': isProfileComplete,
+      if (includePassword) 'password': password,
     };
   }
 }

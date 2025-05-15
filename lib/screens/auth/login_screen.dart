@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seminari_flutter/models/user.dart';
+import 'package:provider/provider.dart';
 
 import 'package:seminari_flutter/components/my_textfield.dart';
 import 'package:seminari_flutter/components/my_button.dart';
 import 'package:seminari_flutter/components/google_sign_in_button.dart';
+import 'package:seminari_flutter/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -78,6 +80,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleCredentialResponse(dynamic response) {
+    if (!mounted) return; // Verifica si el widget está montado
+
     final credential = response['credential'];
     if (credential != null) {
       print('ID Token recibido: $credential');
@@ -88,10 +92,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _sendIdTokenToBackend(String idToken) async {
+    if (!mounted) return; // Verifica si el widget está montado
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
+
     try {
       final response = await http.post(
         Uri.parse('http://localhost:4000/api/auth/google/mobile'),
@@ -101,21 +108,80 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('accessToken', data['accessToken']);
-        await prefs.setString('refreshToken', data['refreshToken']);
+
+        // Usa AuthService para guardar los tokens
+        final authService = Provider.of<AuthService>(context, listen: false);
+        authService.saveTokens(data['accessToken'], data['refreshToken']);
+
+        final isProfileComplete = data['user']['isProfileComplete'] ?? false;
+
         if (mounted) {
-          context.go('/');
+          if (isProfileComplete) {
+            print('Perfil completo. Redirigiendo a /');
+            context.go('/'); // Redirige a la pantalla principal
+          } else {
+            print('Perfil incompleto. Redirigiendo a /complete-profile');
+            context.go('/complete-profile'); // Redirige a completar perfil
+          }
         }
       } else {
-        setState(() {
-          _errorMessage = "Error en el backend: ${response.body}";
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = "Error en el backend: ${response.body}";
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Error al enviar el ID token al backend: $e";
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Error al enviar el ID token al backend: $e";
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleLogin() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Email y contraseña no pueden estar vacíos.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+
+      final result = await authService.login(email, password);
+
+      if (result.containsKey('error')) {
+        _showError(result['error']);
+      } else {
+        final isProfileComplete = result['isProfileComplete'] as bool;
+
+        if (mounted) {
+          if (isProfileComplete) {
+            print('Perfil completo. Redirigiendo a /');
+            context.go('/'); // Redirige a la pantalla principal
+          } else {
+            print('Perfil incompleto. Redirigiendo a /complete-profile');
+            context.go('/complete-profile'); // Redirige a completar perfil
+          }
+        }
+      }
+    } catch (e) {
+      _showError('Error de conexión');
     } finally {
       setState(() {
         _isLoading = false;
@@ -123,72 +189,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _handleLogin() async {
-  final email = emailController.text.trim();
-  final password = passwordController.text.trim();
-
-  if (email.isEmpty || password.isEmpty) {
-    _showError('Email and password cannot be empty.');
-    return;
-  }
-
-  final body = jsonEncode({
-    'email': email,
-    'password': password,
-  });
-
-  setState(() {
-    _isLoading = true;
-    _errorMessage = null;
-  });
-
-  try {
-    final response = await http.post(
-      Uri.parse('http://localhost:4000/api/auth/login'), // Cambia la URL si es necesario
-      headers: {'Content-Type': 'application/json'},
-      body: body,
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      final accessToken = data['accessToken'];
-      final refreshToken = data['refreshToken'];
-      final userData = data['user'];
-
-      // Guarda los tokens en SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('accessToken', accessToken);
-      await prefs.setString('refreshToken', refreshToken);
-
-      // Actualiza el estado del usuario (si usas un Provider o similar)
-      // final userProvider = Provider.of<UserProvider>(context, listen: false);
-      // userProvider.setCurrentUser(User.fromJson(userData));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
-
-      if (mounted) {
-        context.go('/'); // Redirige al usuario a la pantalla principal
-      }
-    } else {
-      final error = jsonDecode(response.body)['message'] ?? 'Invalid credentials.';
-      _showError(error);
-    }
-  } catch (e) {
-    _showError('Connection error');
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
-void _showError(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
