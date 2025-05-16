@@ -10,6 +10,7 @@ class Packet {
   final String? deliveryId;
   final String? origin;
   final String? destination;
+  final String? location;
 
   Packet({
     required this.id,
@@ -23,6 +24,7 @@ class Packet {
     this.deliveryId,
     this.origin,
     this.destination,
+    this.location,
   });
 
   factory Packet.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class Packet {
       deliveryId: json['deliveryId'] as String?,
       origin: json['origin'] as String?,
       destination: json['destination'] as String?,
+      location: json['location'] as String?,
     );
   }
 
@@ -56,6 +59,7 @@ class Packet {
       'deliveryId': deliveryId,
       'origin': origin,
       'destination': destination,
+      'location': location,
     };
   }
 }

@@ -2,25 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/users_provider.dart';
 import '../models/packet.dart';
+import 'package:latlong2/latlong.dart';
+import '../widgets/packet_map.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Packet? selectedPacket;
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final String username = userProvider.currentUser.name;
 
-    // Fetch packets by their status (Almacen and Reparto)
-    final almacenPackets =
-        userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'almacén')
-            .toList();
+    final almacenPackets = userProvider.currentUser.packets
+        .where((packet) => packet.status.toLowerCase() == 'almacén')
+        .toList();
 
-    final repartoPackets =
-        userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'reparto')
-            .toList();
+    final repartoPackets = userProvider.currentUser.packets
+        .where((packet) => packet.status.toLowerCase() == 'en reparto')
+        .toList();
 
     return SingleChildScrollView(
       child: Padding(
@@ -28,22 +33,34 @@ class HomeScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                // Left column for Almacen packets
-                _buildPacketColumn(
-                  context,
-                  'Packages in Storage',
-                  almacenPackets,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildPacketColumn(
+                      context,
+                      'Packages in Storage',
+                      almacenPackets,
+                      false,
+                    ),
+                    _buildPacketColumn(
+                      context,
+                      'Packages in Delivery',
+                      repartoPackets,
+                      true,
+                    ),
+                  ],
                 ),
-
-                // Right column for Reparto packets
-                _buildPacketColumn(
-                  context,
-                  'Packages in Delivery',
-                  repartoPackets,
-                ),
+                if (selectedPacket != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 32.0),
+                    child: PacketMap(
+                      origin: _toLatLng(selectedPacket!.origin),
+                      destination: _toLatLng(selectedPacket!.destination),
+                      current: selectedPacket!.location != null ? _toLatLng(selectedPacket!.location) : null,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -52,11 +69,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Create a column of packets (Almacen or Reparto)
   Widget _buildPacketColumn(
     BuildContext context,
     String title,
     List<Packet> packets,
+    bool showRouteButton,
   ) {
     return Expanded(
       child: Column(
@@ -64,12 +81,9 @@ class HomeScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          // If there are no packets, display a message
           if (packets.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -78,15 +92,13 @@ class HomeScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-          // Display each packet in an elevated card
-          ...packets.map((packet) => _buildPacketCard(context, packet)),
+          ...packets.map((packet) => _buildPacketCard(context, packet, showRouteButton)),
         ],
       ),
     );
   }
 
-  // Create an elevated card for each packet
-  Widget _buildPacketCard(BuildContext context, Packet packet) {
+  Widget _buildPacketCard(BuildContext context, Packet packet, bool showRouteButton) {
     return Card(
       elevation: 8,
       color: Theme.of(context).cardColor,
@@ -99,58 +111,44 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               packet.name,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               packet.description,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('Package Details'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Origin: ${packet.origin}'),
-                          const SizedBox(height: 8),
-                          Text('Destination: ${packet.destination}'),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: const Text('View Details'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            if (showRouteButton)
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedPacket = packet;
+                  });
+                },
+                child: const Text('Ver ruta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  LatLng _toLatLng(dynamic coords) {
+    if (coords is List && coords.length == 2) {
+      return LatLng(coords[0].toDouble(), coords[1].toDouble());
+    }
+    if (coords is String) {
+      final parts = coords.split(',').map((e) => double.tryParse(e.trim())).toList();
+      if (parts.length == 2 && parts[0] != null && parts[1] != null) {
+        return LatLng(parts[0]!, parts[1]!);
+      }
+    }
+    return const LatLng(40.4168, -3.7038); // Madrid por defecto
   }
 }
