@@ -36,18 +36,16 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _loadUserData(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          // Mostrar un indicador de carga mientras se obtienen los datos
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: Text(
-                'Error al cargar los datos del usuario: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
+          // Mostrar un mensaje de error si ocurre un problema
+          return Center(
+            child: Text(
+              'Error al cargar los datos del usuario: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
             ),
           );
         }
@@ -63,94 +61,91 @@ class _HomeScreenState extends State<HomeScreen> {
             .where((packet) => packet.status.toLowerCase() == 'en reparto')
             .toList();
 
-        return LayoutWrapper(
-          title: 'Home',
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Welcome, $username!',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Welcome, $username!',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                    const SizedBox(height: 32),
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Theme Settings',
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                      ),
-                      const SizedBox(height: 32),
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Theme Settings',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    themeProvider.isDarkMode
-                                        ? 'Dark Mode'
-                                        : 'Light Mode',
-                                    style: Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                  Switch(
-                                    value: themeProvider.isDarkMode,
-                                    onChanged: (value) {
-                                      themeProvider.toggleTheme();
-                                    },
-                                    activeColor:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  themeProvider.isDarkMode
+                                      ? 'Dark Mode'
+                                      : 'Light Mode',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                                Switch(
+                                  value: themeProvider.isDarkMode,
+                                  onChanged: (value) {
+                                    themeProvider.toggleTheme();
+                                  },
+                                  activeColor:
+                                      Theme.of(context).colorScheme.primary,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildPacketColumn(
-                            context,
-                            'Packages in Storage',
-                            almacenPackets,
-                            false,
-                          ),
-                          _buildPacketColumn(
-                            context,
-                            'Packages in Delivery',
-                            repartoPackets,
-                            true,
-                          ),
-                        ],
-                      ),
-                      if (selectedPacket != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 32.0),
-                          child: PacketMap(
-                            origin: _toLatLng(selectedPacket!.origin),
-                            destination: _toLatLng(selectedPacket!.destination),
-                            current: selectedPacket!.location != null
-                                ? _toLatLng(selectedPacket!.location)
-                                : null,
-                          ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildPacketColumn(
+                          context,
+                          'Packages in Storage',
+                          almacenPackets,
+                          false,
                         ),
-                    ],
-                  ),
+                        _buildPacketColumn(
+                          context,
+                          'Packages in Delivery',
+                          repartoPackets,
+                          true,
+                        ),
+                      ],
+                    ),
+                    if (selectedPacket != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32.0),
+                        child: PacketMap(
+                          origin: _toLatLng(selectedPacket!.origin),
+                          destination: _toLatLng(selectedPacket!.destination),
+                          current: selectedPacket!.location != null
+                              ? _toLatLng(selectedPacket!.location)
+                              : null,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
