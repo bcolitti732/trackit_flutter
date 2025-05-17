@@ -21,6 +21,7 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
   final List<Map<String, dynamic>> _pages = [
     {'title': 'Home', 'route': '/', 'icon': Icons.home},
     {'title': 'Profile', 'route': '/profile', 'icon': Icons.account_circle},
+    {'title': 'Chat', 'route': '/contactList', 'icon': Icons.chat},
   ];
 
   void _onItemTapped(int index) {

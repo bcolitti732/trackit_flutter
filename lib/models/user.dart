@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'packet.dart'; // Importamos el modelo Packet
 
 class User {
   final String? id;
@@ -7,6 +8,7 @@ class User {
   final String password;
   final String phone;
   final String birthdate;
+  final List<Packet> packets; // Lista de paquetes
   final bool isProfileComplete;
 
   User({
@@ -16,6 +18,7 @@ class User {
     required this.password,
     required this.phone,
     required this.birthdate,
+    required this.packets,
     required this.isProfileComplete,
   });
 
@@ -33,6 +36,9 @@ class User {
       password: json['password'] ?? '',
       phone: json['phone'] ?? '',
       birthdate: formattedDate,
+      packets: (json['packets'] as List<dynamic>? ?? [])
+          .map((packetJson) => Packet.fromJson(packetJson as Map<String, dynamic>))
+          .toList(),
       isProfileComplete: json['isProfileComplete'] ?? false,
     );
   }
@@ -44,6 +50,8 @@ class User {
       'email': email,
       'phone': phone,
       'birthdate': birthdate,
+      if (includePassword) 'password': password, // Solo incluir la contraseña si se solicita
+      'packets': packets.map((packet) => packet.toJson()).toList(), // Convertir paquetes a JSON
       'isProfileComplete': isProfileComplete,
       if (includePassword) 'password': password,
     };

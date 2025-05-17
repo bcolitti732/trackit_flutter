@@ -14,6 +14,7 @@ class UserProvider with ChangeNotifier {
     password: '',
     phone: '',
     birthdate: '',
+    packets: [], // Inicializamos con una lista vacía
     isProfileComplete: false, // Agregar este campo
   );
 
@@ -67,29 +68,27 @@ class UserProvider with ChangeNotifier {
         password: password,
         phone: phone,
         birthdate: birthdate,
+        packets: [], // Los nuevos usuarios no tienen paquetes inicialmente
         isProfileComplete: false, // Establecer como incompleto al crear
       );
       final createdUser = await UserService.createUser(nouUsuari);
       _users.add(createdUser);
-      _setLoading(false);
       notifyListeners();
       return true;
     } catch (e) {
       _setError('Error creating user: $e');
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
   Future<bool> modificarUsuari(
-    String? id,
     String nom,
     String email,
     String phone,
-    String birthdate,
-    String password,
   ) async {
-    if (id == null || id.isEmpty) {
+    if (currentUser.id == null || currentUser.id!.isEmpty) {
       _setError('Error: El ID del usuario es nulo o vacío');
       return false;
     }
@@ -98,12 +97,13 @@ class UserProvider with ChangeNotifier {
     _setError(null);
 
     final nouUsuari = User(
-      id: id,
+      id: currentUser.id, // Mantenemos el ID actual
       name: nom,
       email: email,
-      password: password,
+      password: currentUser.password, // Mantenemos la contraseña actual
       phone: phone,
-      birthdate: birthdate,
+      birthdate: currentUser.birthdate, // Mantenemos la fecha de nacimiento actual
+      packets: currentUser.packets, // Mantenemos los paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
     );
 
@@ -111,36 +111,35 @@ class UserProvider with ChangeNotifier {
       final updatedUser = await UserService.modificaUser(nouUsuari);
       if (updatedUser != null) {
         setCurrentUser(updatedUser);
-        _setLoading(false);
-        notifyListeners();
         return true;
       } else {
         _setError('Error: El servicio devolvió un usuario nulo');
-        _setLoading(false);
         return false;
       }
     } catch (e) {
       _setError('Error modificando el usuario: $e');
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
   Future<bool> eliminarUsuariPerId(String id) async {
     _setLoading(true);
     _setError(null);
+
     try {
       final success = await UserService.deleteUser(id);
       if (success) {
         _users.removeWhere((user) => user.id == id);
         notifyListeners();
       }
-      _setLoading(false);
       return success;
     } catch (e) {
       _setError('Error deleting user: $e');
-      _setLoading(false);
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -155,6 +154,7 @@ class UserProvider with ChangeNotifier {
       password: password,
       phone: currentUser.phone,
       birthdate: currentUser.birthdate,
+      packets: currentUser.packets, // Mantenemos los paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
     );
 
@@ -162,16 +162,14 @@ class UserProvider with ChangeNotifier {
       final user = await UserService.modificaUser(newUser);
 
       if (user != null) {
-        currentUser = user;
-        notifyListeners();
+        setCurrentUser(user);
         return true;
       } else {
-        _setError('Error canviant contrasenya: Usuari no trobat');
+        _setError('Error cambiando contraseña: Usuario no encontrado');
         return false;
       }
     } catch (e) {
-      _setError('Error canviant contrasenya: $e');
-      _setLoading(false);
+      _setError('Error cambiando contraseña: $e');
       return false;
     } finally {
       _setLoading(false);

@@ -96,6 +96,7 @@ class UserService {
         "password": user.password,
         "phone": user.phone,
         "birthdate": DateFormat('yyyy-MM-dd').format(DateTime.parse(user.birthdate)),
+        "packets": user.packets.map((packet) => packet.toJson()).toList(),
       };
 
       final response = await http.put(
