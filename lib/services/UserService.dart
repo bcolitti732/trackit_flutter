@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/user.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../services/dio_client.dart';
+import '../models/user.dart';
+import '../models/packet.dart';
 
 class UserService {
   static String get baseUrl {
@@ -49,7 +50,7 @@ class UserService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return User.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error al crear usuari: ${response.statusCode}');
+      throw Exception('Error al crear usuario: ${response.statusCode}');
     }
   }
 
@@ -59,7 +60,7 @@ class UserService {
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception("Error a l'obtenir usuari: ${response.statusCode}");
+      throw Exception("Error al obtener usuario: ${response.statusCode}");
     }
   }
 
@@ -73,7 +74,7 @@ class UserService {
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Error actualitzant usuari: ${response.statusCode}');
+      throw Exception('Error actualizando usuario: ${response.statusCode}');
     }
   }
 
@@ -83,36 +84,7 @@ class UserService {
     if (response.statusCode == 200) {
       return true;
     } else {
-      throw Exception('Error eliminant usuari: ${response.statusCode}');
-    }
-  }
-
-  static Future<User?> modificaUser(User user) async {
-    try {
-      final body = {
-        "_id": user.id,
-        "name": user.name,
-        "email": user.email,
-        "password": user.password,
-        "phone": user.phone,
-        "birthdate": DateFormat('yyyy-MM-dd').format(DateTime.parse(user.birthdate)),
-        "packets": user.packets.map((packet) => packet.toJson()).toList(),
-      };
-
-      final response = await http.put(
-        Uri.parse('$baseUrl/${user.id}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return User.fromJson(data);
-      } else {
-        return null;
-      }
-    } catch (e) {
-      throw Exception('Error al modificar usuario');
+      throw Exception('Error eliminando usuario: ${response.statusCode}');
     }
   }
 
@@ -129,6 +101,37 @@ class UserService {
       }
     } catch (e) {
       throw Exception('Error al obtener el usuario actual: $e');
+    }
+  }
+
+  static Future<List<Packet>> getUserPackets(String userId) async {
+    try {
+      final dio = DioClient().dio; // Obtén la instancia de Dio configurada
+      final response = await dio.get('/users/$userId/packets'); // El interceptor añade el token automáticamente
+
+      if (response.statusCode == 200) {
+        final List<dynamic> packetsJson = response.data; // `response.data` ya es un objeto JSON
+        return packetsJson.map((json) => Packet.fromJson(json)).toList();
+      } else {
+        throw Exception('Error al obtener los paquetes del usuario: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al obtener los paquetes del usuario: $e');
+    }
+  }
+
+  static Future<Packet> getPacketById(String packetId) async {
+    try {
+      final dio = DioClient().dio; // Usa Dio para manejar el token automáticamente
+      final response = await dio.get('/packets/$packetId');
+
+      if (response.statusCode == 200) {
+        return Packet.fromJson(response.data);
+      } else {
+        throw Exception('Error al obtener el paquete: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al obtener el paquete: $e');
     }
   }
 }

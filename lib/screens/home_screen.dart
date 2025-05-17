@@ -6,6 +6,7 @@ import '../models/packet.dart';
 import 'package:latlong2/latlong.dart';
 import '../widgets/packet_map.dart';
 import 'package:seminari_flutter/services/UserService.dart';
+import '../models/user.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,98 +17,112 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Packet? selectedPacket;
+  List<Packet> packets = [];
+  User? currentUser;
+  bool _isDataLoaded = false; // Variable para controlar si los datos ya se cargaron
 
-  Future<void> _loadUserData(BuildContext context) async {
+  Future<void> _loadUserAndPackets(BuildContext context) async {
     try {
+      // Llama a getCurrentUser para obtener los datos del usuario
       final user = await UserService.getCurrentUser();
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      userProvider.setCurrentUser(user);
+
+      setState(() {
+        currentUser = user;
+      });
+
+      // Carga los detalles de los paquetes usando los identificadores
+      final List<Packet> userPackets = [];
+      for (final packetId in user.packetsIds) {
+        final packet = await UserService.getPacketById(packetId);
+        userPackets.add(packet);
+      }
+
+      setState(() {
+        packets = userPackets;
+        _isDataLoaded = true; // Marca los datos como cargados
+      });
     } catch (e) {
-      throw Exception('Error al cargar los datos del usuario: $e');
+      throw Exception('Error al cargar los datos del usuario o los paquetes: $e');
     }
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Llama a _loadUserAndPackets solo una vez al inicializar el estado
+    _loadUserAndPackets(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _loadUserData(context),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    if (!_isDataLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error al cargar los datos del usuario: ${snapshot.error}',
-              style: const TextStyle(color: Colors.red),
-            ),
-          );
-        }
+    if (currentUser == null) {
+      return const Center(
+        child: Text('No se pudo cargar el usuario.'),
+      );
+    }
 
-        final userProvider = Provider.of<UserProvider>(context, listen: true);
-        final String username = userProvider.currentUser.name;
+    final almacenPackets = packets
+        .where((packet) => packet.status.toLowerCase() == 'almacén')
+        .toList();
 
-        final almacenPackets = userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'almacén')
-            .toList();
+    final repartoPackets = packets
+        .where((packet) => packet.status.toLowerCase() == 'en reparto')
+        .toList();
 
-        final repartoPackets = userProvider.currentUser.packets
-            .where((packet) => packet.status.toLowerCase() == 'en reparto')
-            .toList();
-
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Welcome, $username!',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildPacketColumn(
-                          context,
-                          AppLocalizations.of(context)!.packagesInStorage,
-                          almacenPackets,
-                          false,
-                        ),
-                        _buildPacketColumn(
-                          context,
-                          AppLocalizations.of(context)!.packagesInDelivery,
-                          repartoPackets,
-                          true,
-                        ),
-                      ],
-                    ),
-                    if (selectedPacket != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 32.0),
-                        child: PacketMap(
-                          origin: _toLatLng(selectedPacket!.origin),
-                          destination: _toLatLng(selectedPacket!.destination),
-                          current: selectedPacket!.location != null
-                              ? _toLatLng(selectedPacket!.location)
-                              : null,
-                        ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Welcome, ${currentUser!.name}!',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildPacketColumn(
+                      context,
+                      AppLocalizations.of(context)!.packagesInStorage,
+                      almacenPackets,
+                      false,
+                    ),
+                    _buildPacketColumn(
+                      context,
+                      AppLocalizations.of(context)!.packagesInDelivery,
+                      repartoPackets,
+                      true,
+                    ),
                   ],
                 ),
-              ),
+                if (selectedPacket != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 32.0),
+                    child: PacketMap(
+                      origin: _toLatLng(selectedPacket!.origin),
+                      destination: _toLatLng(selectedPacket!.destination),
+                      current: selectedPacket!.location != null
+                          ? _toLatLng(selectedPacket!.location)
+                          : null,
+                    ),
+                  ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

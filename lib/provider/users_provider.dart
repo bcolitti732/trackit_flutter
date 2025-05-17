@@ -14,8 +14,8 @@ class UserProvider with ChangeNotifier {
     password: '',
     phone: '',
     birthdate: '',
-    packets: [], // Inicializamos con una lista vacía
-    isProfileComplete: false, // Agregar este campo
+    packetsIds: [], // Inicializamos con una lista vacía de identificadores de paquetes
+    isProfileComplete: false,
   );
 
   List<User> get users => _users;
@@ -68,7 +68,7 @@ class UserProvider with ChangeNotifier {
         password: password,
         phone: phone,
         birthdate: birthdate,
-        packets: [], // Los nuevos usuarios no tienen paquetes inicialmente
+        packetsIds: [], // Los nuevos usuarios no tienen paquetes inicialmente
         isProfileComplete: false, // Establecer como incompleto al crear
       );
       final createdUser = await UserService.createUser(nouUsuari);
@@ -103,12 +103,12 @@ class UserProvider with ChangeNotifier {
       password: currentUser.password, // Mantenemos la contraseña actual
       phone: phone,
       birthdate: currentUser.birthdate, // Mantenemos la fecha de nacimiento actual
-      packets: currentUser.packets, // Mantenemos los paquetes actuales
+      packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
     );
 
     try {
-      final updatedUser = await UserService.modificaUser(nouUsuari);
+      final updatedUser = await UserService.updateUser(currentUser.id!, nouUsuari);
       if (updatedUser != null) {
         setCurrentUser(updatedUser);
         return true;
@@ -154,12 +154,12 @@ class UserProvider with ChangeNotifier {
       password: password,
       phone: currentUser.phone,
       birthdate: currentUser.birthdate,
-      packets: currentUser.packets, // Mantenemos los paquetes actuales
+      packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
     );
 
     try {
-      final user = await UserService.modificaUser(newUser);
+      final user = await UserService.updateUser(currentUser.id!, newUser);
 
       if (user != null) {
         setCurrentUser(user);

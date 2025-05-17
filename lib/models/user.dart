@@ -1,5 +1,4 @@
 import 'package:intl/intl.dart';
-import 'packet.dart'; // Importamos el modelo Packet
 
 class User {
   final String? id;
@@ -8,7 +7,7 @@ class User {
   final String password;
   final String phone;
   final String birthdate;
-  final List<Packet> packets; // Lista de paquetes
+  final List<String> packetsIds; // Lista de identificadores de paquetes
   final bool isProfileComplete;
 
   User({
@@ -18,7 +17,7 @@ class User {
     required this.password,
     required this.phone,
     required this.birthdate,
-    required this.packets,
+    required this.packetsIds,
     required this.isProfileComplete,
   });
 
@@ -30,15 +29,13 @@ class User {
     }
 
     return User(
-      id: json['id'],
+      id: json['_id'], // Asegúrate de que el backend devuelve `_id`
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       password: json['password'] ?? '',
       phone: json['phone'] ?? '',
       birthdate: formattedDate,
-      packets: (json['packets'] as List<dynamic>? ?? [])
-          .map((packetJson) => Packet.fromJson(packetJson as Map<String, dynamic>))
-          .toList(),
+      packetsIds: List<String>.from(json['packets'] ?? []), // Mapea los identificadores de paquetes
       isProfileComplete: json['isProfileComplete'] ?? false,
     );
   }
@@ -51,9 +48,8 @@ class User {
       'phone': phone,
       'birthdate': birthdate,
       if (includePassword) 'password': password, // Solo incluir la contraseña si se solicita
-      'packets': packets.map((packet) => packet.toJson()).toList(), // Convertir paquetes a JSON
+      'packets': packetsIds, // Devuelve solo los identificadores de paquetes
       'isProfileComplete': isProfileComplete,
-      if (includePassword) 'password': password,
     };
   }
 }
