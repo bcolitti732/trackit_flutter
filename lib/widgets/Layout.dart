@@ -19,10 +19,14 @@ class LayoutWrapper extends StatefulWidget {
 class _LayoutWrapperState extends State<LayoutWrapper> {
   int _currentIndex = 0;
 
-  final List<Map<String, dynamic>> _pages = [
-    {'route': '/', 'icon': Icons.home},
-    {'route': '/profile', 'icon': Icons.account_circle},
-  ];
+  List<Map<String, dynamic>> get _pages {
+    final localizations = AppLocalizations.of(context)!;
+    return [
+      {'title': localizations.home, 'route': '/', 'icon': Icons.home},
+      {'title': localizations.profile, 'route': '/profile', 'icon': Icons.account_circle},
+      {'title': localizations.chat, 'route': '/contactList', 'icon': Icons.chat},
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -41,13 +45,9 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
       });
     }
 
-    // Cargar los títulos traducidos
-    final homeTitle = AppLocalizations.of(context)!.home;
-    final profileTitle = AppLocalizations.of(context)!.profile;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentIndex == 0 ? homeTitle : profileTitle),
+        title: Text(_pages[_currentIndex]['title']),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 2,
@@ -62,16 +62,12 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Theme.of(context).colorScheme.onSurface,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(_pages[0]['icon']),
-            label: homeTitle,  // Usar el texto traducido
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(_pages[1]['icon']),
-            label: profileTitle,  // Usar el texto traducido
-          ),
-        ],
+        items: _pages.map((page) {
+          return BottomNavigationBarItem(
+            icon: Icon(page['icon']),
+            label: page['title'],
+          );
+        }).toList(),
       ),
     );
   }

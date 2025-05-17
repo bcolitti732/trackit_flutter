@@ -131,7 +131,7 @@ class _EditarScreenState extends State<EditScreen> {
                                 final success = await userProvider.modificarUsuari(
                                   nomController.text,
                                   emailController.text,
-                                  phoneController.text,
+                                  phoneController.text
                                 );
 
                                 if (success && context.mounted) {

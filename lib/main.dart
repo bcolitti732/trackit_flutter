@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 
 import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
-import 'package:seminari_flutter/provider/locale_provider.dart'; // <- IMPORTANTE
-
+import 'package:seminari_flutter/provider/locale_provider.dart';
+import 'package:seminari_flutter/provider/messages_provider.dart';
 import 'package:seminari_flutter/routes/app_router.dart';
+import 'package:seminari_flutter/services/auth_service.dart';
+import 'package:seminari_flutter/services/dio_client.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,6 +25,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        Provider(create: (_) => DioClient()), // Proveedor del cliente Dio
+        ProxyProvider<DioClient, AuthService>(
+          update: (_, dioClient, __) => AuthService(dioClient),
+        ), // Proveedor de AuthService que usa DioClient
+        ChangeNotifierProvider(create: (_) => MessagesProvider()),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, child) {
@@ -105,7 +112,6 @@ class MyApp extends StatelessWidget {
               ),
             ),
             themeMode: themeProvider.themeMode,
-
             locale: localeProvider.locale,
             supportedLocales: L10n.supportedLocales,
             localizationsDelegates: const [

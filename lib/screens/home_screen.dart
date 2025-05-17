@@ -2,52 +2,112 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../provider/users_provider.dart';
-import '../widgets/Layout.dart';
 import '../models/packet.dart';
+import 'package:latlong2/latlong.dart';
+import '../widgets/packet_map.dart';
+import 'package:seminari_flutter/services/UserService.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Packet? selectedPacket;
+
+  Future<void> _loadUserData(BuildContext context) async {
+    try {
+      final user = await UserService.getCurrentUser();
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.setCurrentUser(user);
+    } catch (e) {
+      throw Exception('Error al cargar los datos del usuario: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final String username = userProvider.currentUser.name;
+    return FutureBuilder(
+      future: _loadUserData(context),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    final almacenPackets = userProvider.currentUser.packets
-        .where((packet) => packet.status.toLowerCase() == 'almacén')
-        .toList();
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error al cargar los datos del usuario: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
 
-    final repartoPackets = userProvider.currentUser.packets
-        .where((packet) => packet.status.toLowerCase() == 'reparto')
-        .toList();
+        final userProvider = Provider.of<UserProvider>(context, listen: true);
+        final String username = userProvider.currentUser.name;
 
-    return LayoutWrapper(
-      title: AppLocalizations.of(context)!.homeTitle,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildPacketColumn(
-                    context,
-                    AppLocalizations.of(context)!.packagesInStorage,
-                    almacenPackets,
-                  ),
-                  _buildPacketColumn(
-                    context,
-                    AppLocalizations.of(context)!.packagesInDelivery,
-                    repartoPackets,
-                  ),
-                ],
+        final almacenPackets = userProvider.currentUser.packets
+            .where((packet) => packet.status.toLowerCase() == 'almacén')
+            .toList();
+
+        final repartoPackets = userProvider.currentUser.packets
+            .where((packet) => packet.status.toLowerCase() == 'en reparto')
+            .toList();
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Welcome, $username!',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildPacketColumn(
+                          context,
+                          AppLocalizations.of(context)!.packagesInStorage,
+                          almacenPackets,
+                          false,
+                        ),
+                        _buildPacketColumn(
+                          context,
+                          AppLocalizations.of(context)!.packagesInDelivery,
+                          repartoPackets,
+                          true,
+                        ),
+                      ],
+                    ),
+                    if (selectedPacket != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32.0),
+                        child: PacketMap(
+                          origin: _toLatLng(selectedPacket!.origin),
+                          destination: _toLatLng(selectedPacket!.destination),
+                          current: selectedPacket!.location != null
+                              ? _toLatLng(selectedPacket!.location)
+                              : null,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -55,6 +115,7 @@ class HomeScreen extends StatelessWidget {
     BuildContext context,
     String title,
     List<Packet> packets,
+    bool showRouteButton,
   ) {
     return Expanded(
       child: Column(
@@ -62,10 +123,9 @@ class HomeScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 12),
           if (packets.isEmpty)
@@ -76,13 +136,13 @@ class HomeScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-          ...packets.map((packet) => _buildPacketCard(context, packet)),
+          ...packets.map((packet) => _buildPacketCard(context, packet, showRouteButton)),
         ],
       ),
     );
   }
 
-  Widget _buildPacketCard(BuildContext context, Packet packet) {
+  Widget _buildPacketCard(BuildContext context, Packet packet, bool showRouteButton) {
     return Card(
       elevation: 8,
       color: Theme.of(context).cardColor,
@@ -95,62 +155,50 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               packet.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               packet.description,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text(AppLocalizations.of(context)!.packageDetails),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                              '${AppLocalizations.of(context)!.origin}: ${packet.origin}'),
-                          const SizedBox(height: 8),
-                          Text(
-                              '${AppLocalizations.of(context)!.destination}: ${packet.destination}'),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text(AppLocalizations.of(context)!.close),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: Text(AppLocalizations.of(context)!.viewDetails),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            if (showRouteButton)
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedPacket = packet;
+                  });
+                },
+                child: const Text('Ver ruta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  LatLng _toLatLng(dynamic coords) {
+    if (coords is List && coords.length == 2) {
+      return LatLng(coords[0].toDouble(), coords[1].toDouble());
+    }
+    if (coords is String) {
+      final parts = coords.split(',').map((e) => double.tryParse(e.trim())).toList();
+      if (parts.length == 2 && parts[0] != null && parts[1] != null) {
+        return LatLng(parts[0]!, parts[1]!);
+      }
+    }
+    return const LatLng(40.4168, -3.7038); // Madrid por defecto
   }
 }

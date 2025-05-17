@@ -9,6 +9,7 @@ class User {
   final String phone;
   final String birthdate;
   final List<Packet> packets; // Lista de paquetes
+  final bool isProfileComplete;
 
   User({
     this.id,
@@ -18,6 +19,7 @@ class User {
     required this.phone,
     required this.birthdate,
     required this.packets,
+    required this.isProfileComplete,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -37,18 +39,21 @@ class User {
       packets: (json['packets'] as List<dynamic>? ?? [])
           .map((packetJson) => Packet.fromJson(packetJson as Map<String, dynamic>))
           .toList(),
+      isProfileComplete: json['isProfileComplete'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson({bool includePassword = false, bool includeId = false}) {
     return {
-      if (includeId && id != null) '_id': id, // Solo incluir el ID si se solicita
+      if (includeId && id != null) '_id': id,
       'name': name,
       'email': email,
       'phone': phone,
       'birthdate': birthdate,
       if (includePassword) 'password': password, // Solo incluir la contraseña si se solicita
       'packets': packets.map((packet) => packet.toJson()).toList(), // Convertir paquetes a JSON
+      'isProfileComplete': isProfileComplete,
+      if (includePassword) 'password': password,
     };
   }
 }

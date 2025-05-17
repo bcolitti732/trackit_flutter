@@ -4,6 +4,7 @@ import '../models/user.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
+import '../services/dio_client.dart';
 
 class UserService {
   static String get baseUrl {
@@ -92,12 +93,11 @@ class UserService {
         "_id": user.id,
         "name": user.name,
         "email": user.email,
+        "password": user.password,
         "phone": user.phone,
-        "birthdate": user.birthdate,
+        "birthdate": DateFormat('yyyy-MM-dd').format(DateTime.parse(user.birthdate)),
         "packets": user.packets.map((packet) => packet.toJson()).toList(),
       };
-
-      print('Request body: ${jsonEncode(body)}');
 
       final response = await http.put(
         Uri.parse('$baseUrl/${user.id}'),
@@ -105,19 +105,30 @@ class UserService {
         body: jsonEncode(body),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return User.fromJson(data);
       } else {
-        throw Exception(
-          'Error al modificar usuario: ${response.statusCode} - ${response.body}',
-        );
+        return null;
       }
     } catch (e) {
-      throw Exception('Error al modificar usuario: $e');
+      throw Exception('Error al modificar usuario');
+    }
+  }
+
+  static Future<User> getCurrentUser() async {
+    try {
+      final dio = DioClient().dio;
+      final response = await dio.get('/users/me'); // El interceptor añade el token automáticamente
+
+      if (response.statusCode == 200) {
+        final data = response.data; // `response.data` ya es un objeto JSON
+        return User.fromJson(data);
+      } else {
+        throw Exception('Error al obtener el usuario actual: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al obtener el usuario actual: $e');
     }
   }
 }
