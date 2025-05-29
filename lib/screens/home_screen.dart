@@ -26,6 +26,15 @@ class _HomeScreenState extends State<HomeScreen> {
       // Llama a getCurrentUser para obtener los datos del usuario
       final user = await UserService.getCurrentUser();
 
+      print('User loaded:');
+    print('ID: ${user.id}');
+    print('Name: ${user.name}');
+    print('Email: ${user.email}');
+    print('Phone: ${user.phone}');
+    print('Birthdate: ${user.birthdate}');
+    print('Packets: ${user.packetsIds}');
+    print('isProfileComplete: ${user.isProfileComplete}');
+
       setState(() {
         currentUser = user;
       });

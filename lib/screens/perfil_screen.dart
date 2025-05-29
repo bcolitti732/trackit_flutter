@@ -5,9 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
-import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 import 'package:seminari_flutter/provider/locale_provider.dart';
+import 'package:seminari_flutter/services/UserService.dart';
+import 'package:seminari_flutter/models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +19,22 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _image;
+  User? currentUser;
+  bool _isLoading = true;
+
+  Future<void> _loadUser() async {
+    try {
+      final user = await UserService.getCurrentUser();
+      setState(() {
+        currentUser = user;
+        _isLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading user: $e')),
+      );
+    }
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -30,11 +47,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final localizations = AppLocalizations.of(context)!;
-    final currentUser = userProvider.currentUser;
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (currentUser == null) {
+      return Center(
+        child: Text(localizations.logoutError),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -76,14 +107,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                currentUser.name,
+                currentUser!.name,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 4),
               Text(
-                currentUser.email,
+                currentUser!.email,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey,
                     ),
@@ -97,8 +128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     Icons.phone,
                     localizations.phone,
-                    currentUser.phone.isNotEmpty
-                        ? currentUser.phone
+                    currentUser!.phone.isNotEmpty
+                        ? currentUser!.phone
                         : localizations.notRegistered,
                   ),
                   const Divider(),
@@ -106,8 +137,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     Icons.calendar_today,
                     localizations.dateOfBirth,
-                    currentUser.birthdate.isNotEmpty
-                        ? currentUser.birthdate
+                    currentUser!.birthdate.isNotEmpty
+                        ? currentUser!.birthdate
                         : localizations.notRegistered,
                   ),
                 ],
