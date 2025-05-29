@@ -128,6 +128,11 @@ class AuthService {
     }
   }
 
+  static Future<String?> getAccessToken() async {
+  const storage = FlutterSecureStorage();
+  return await storage.read(key: 'flutter.accessToken');
+}
+
   Future<Map<String, dynamic>> completeProfile({
     required String phone,
     required String birthdate,

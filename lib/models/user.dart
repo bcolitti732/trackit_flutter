@@ -9,6 +9,7 @@ class User {
   final String birthdate;
   final List<String> packetsIds; // Lista de identificadores de paquetes
   final bool isProfileComplete;
+  final String role; // ➕ Nuevo campo de rol
 
   User({
     this.id,
@@ -19,6 +20,7 @@ class User {
     required this.birthdate,
     required this.packetsIds,
     required this.isProfileComplete,
+    required this.role,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -29,14 +31,15 @@ class User {
     }
 
     return User(
-      id: json['_id'], // Asegúrate de que el backend devuelve `_id`
+      id: json['id'],
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       password: json['password'] ?? '',
       phone: json['phone'] ?? '',
       birthdate: formattedDate,
-      packetsIds: List<String>.from(json['packets'] ?? []), // Mapea los identificadores de paquetes
+      packetsIds: List<String>.from(json['packets'] ?? []),
       isProfileComplete: json['isProfileComplete'] ?? false,
+      role: json['role'] ?? 'user', 
     );
   }
 
@@ -47,9 +50,10 @@ class User {
       'email': email,
       'phone': phone,
       'birthdate': birthdate,
-      if (includePassword) 'password': password, // Solo incluir la contraseña si se solicita
-      'packets': packetsIds, // Devuelve solo los identificadores de paquetes
+      if (includePassword) 'password': password,
+      'packets': packetsIds,
       'isProfileComplete': isProfileComplete,
+      'role': role, 
     };
   }
 }

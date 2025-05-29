@@ -6,7 +6,9 @@ import '../models/packet.dart';
 import 'package:latlong2/latlong.dart';
 import '../widgets/packet_map.dart';
 import 'package:seminari_flutter/services/UserService.dart';
+import 'package:seminari_flutter/services/auth_service.dart';
 import '../models/user.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,46 +21,122 @@ class _HomeScreenState extends State<HomeScreen> {
   Packet? selectedPacket;
   List<Packet> packets = [];
   User? currentUser;
-  bool _isDataLoaded = false; // Variable para controlar si los datos ya se cargaron
+  bool _isDataLoaded = false;
+  IO.Socket? _socket;
+
+  void _setupSocketNotifications(String token, String userId) {
+    _socket = IO.io(
+      'http://localhost:4005',
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .enableAutoConnect()
+          .setAuth({'token': token})
+          .build(),
+    );
+
+    _socket!.onConnect((_) {
+      print('Socket.IO conectado para notificaciones');
+    });
+
+    _socket!.on('push_notification', (data) {
+      print('Notificación recibida: $data');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            elevation: 8,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Row(
+              children: [
+                Icon(
+                  Icons.notifications_active,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Notificación',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        data['body'] ?? '¡Tienes una notificación!',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    });
+
+    _socket!.onDisconnect((_) => print('Socket.IO desconectado'));
+  }
+
+  @override
+  void dispose() {
+    _socket?.dispose();
+    super.dispose();
+  }
 
   Future<void> _loadUserAndPackets(BuildContext context) async {
     try {
-      // Llama a getCurrentUser para obtener los datos del usuario
       final user = await UserService.getCurrentUser();
-
-      print('User loaded:');
-    print('ID: ${user.id}');
-    print('Name: ${user.name}');
-    print('Email: ${user.email}');
-    print('Phone: ${user.phone}');
-    print('Birthdate: ${user.birthdate}');
-    print('Packets: ${user.packetsIds}');
-    print('isProfileComplete: ${user.isProfileComplete}');
+      print('Usuario completo: $user');
+      print('Usuario ID: ${user.id}');
 
       setState(() {
         currentUser = user;
       });
 
-      // Carga los detalles de los paquetes usando los identificadores
+      final token = await AuthService.getAccessToken();
+      print('Token obtenido: $token');
+
+      if (token != null && user.id != null && user.id!.isNotEmpty) {
+        _setupSocketNotifications(token, user.id!);
+      } else {
+        print('Token o userId nulo o vacío, no se conecta socket.');
+      }
+
       final List<Packet> userPackets = [];
       for (final packetId in user.packetsIds) {
+        print('Cargando paquete con id: $packetId');
         final packet = await UserService.getPacketById(packetId);
+        print('Paquete cargado: ${packet.name}');
         userPackets.add(packet);
       }
 
       setState(() {
         packets = userPackets;
-        _isDataLoaded = true; // Marca los datos como cargados
+        _isDataLoaded = true;
       });
+
+      print('Datos cargados completamente.');
     } catch (e) {
-      throw Exception('Error al cargar los datos del usuario o los paquetes: $e');
+      print('Error al cargar los datos del usuario o los paquetes: $e');
+      throw Exception(
+        'Error al cargar los datos del usuario o los paquetes: $e',
+      );
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // Llama a _loadUserAndPackets solo una vez al inicializar el estado
     _loadUserAndPackets(context);
   }
 
@@ -69,9 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (currentUser == null) {
-      return const Center(
-        child: Text('No se pudo cargar el usuario.'),
-      );
+      return const Center(child: Text('No se pudo cargar el usuario.'));
     }
 
     final almacenPackets = packets
@@ -147,9 +223,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (packets.isEmpty)
@@ -160,13 +237,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-          ...packets.map((packet) => _buildPacketCard(context, packet, showRouteButton)),
+          ...packets.map(
+            (packet) => _buildPacketCard(context, packet, showRouteButton),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPacketCard(BuildContext context, Packet packet, bool showRouteButton) {
+  Widget _buildPacketCard(
+    BuildContext context,
+    Packet packet,
+    bool showRouteButton,
+  ) {
     return Card(
       elevation: 8,
       color: Theme.of(context).cardColor,
@@ -179,16 +262,18 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               packet.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               packet.description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             if (showRouteButton)
@@ -218,7 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return LatLng(coords[0].toDouble(), coords[1].toDouble());
     }
     if (coords is String) {
-      final parts = coords.split(',').map((e) => double.tryParse(e.trim())).toList();
+      final parts =
+          coords.split(',').map((e) => double.tryParse(e.trim())).toList();
       if (parts.length == 2 && parts[0] != null && parts[1] != null) {
         return LatLng(parts[0]!, parts[1]!);
       }

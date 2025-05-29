@@ -14,8 +14,9 @@ class UserProvider with ChangeNotifier {
     password: '',
     phone: '',
     birthdate: '',
-    packetsIds: [], // Inicializamos con una lista vacía de identificadores de paquetes
+    packetsIds: [],
     isProfileComplete: false,
+    role: 'user',
   );
 
   List<User> get users => _users;
@@ -70,6 +71,7 @@ class UserProvider with ChangeNotifier {
         birthdate: birthdate,
         packetsIds: [], // Los nuevos usuarios no tienen paquetes inicialmente
         isProfileComplete: false, // Establecer como incompleto al crear
+        role: 'user', // Establecer el rol por defecto
       );
       final createdUser = await UserService.createUser(nouUsuari);
       _users.add(createdUser);
@@ -105,6 +107,7 @@ class UserProvider with ChangeNotifier {
       birthdate: currentUser.birthdate, // Mantenemos la fecha de nacimiento actual
       packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
+      role: currentUser.role, // Mantener el rol actual
     );
 
     try {
@@ -156,6 +159,7 @@ class UserProvider with ChangeNotifier {
       birthdate: currentUser.birthdate,
       packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
       isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
+      role: currentUser.role, // Mantener el rol actual
     );
 
     try {
