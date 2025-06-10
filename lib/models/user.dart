@@ -7,9 +7,10 @@ class User {
   final String password;
   final String phone;
   final String birthdate;
-  final List<String> packetsIds; // Lista de identificadores de paquetes
+  final List<String> packetsIds;
   final bool isProfileComplete;
-  final String role; // ➕ Nuevo campo de rol
+  final String role;
+  final Map<String, dynamic>? deliveryProfile;
 
   User({
     this.id,
@@ -21,6 +22,7 @@ class User {
     required this.packetsIds,
     required this.isProfileComplete,
     required this.role,
+    this.deliveryProfile,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -39,7 +41,8 @@ class User {
       birthdate: formattedDate,
       packetsIds: List<String>.from(json['packets'] ?? []),
       isProfileComplete: json['isProfileComplete'] ?? false,
-      role: json['role'] ?? 'user', 
+      role: json['role'] ?? 'user',
+      deliveryProfile: json['deliveryProfile'],
     );
   }
 
@@ -53,7 +56,8 @@ class User {
       if (includePassword) 'password': password,
       'packets': packetsIds,
       'isProfileComplete': isProfileComplete,
-      'role': role, 
+      'role': role,
+      if (deliveryProfile != null) 'deliveryProfile': deliveryProfile,
     };
   }
 }

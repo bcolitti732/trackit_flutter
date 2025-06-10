@@ -17,6 +17,7 @@ class UserProvider with ChangeNotifier {
     packetsIds: [],
     isProfileComplete: false,
     role: 'user',
+    deliveryProfile: null,
   );
 
   List<User> get users => _users;
@@ -69,9 +70,10 @@ class UserProvider with ChangeNotifier {
         password: password,
         phone: phone,
         birthdate: birthdate,
-        packetsIds: [], // Los nuevos usuarios no tienen paquetes inicialmente
-        isProfileComplete: false, // Establecer como incompleto al crear
-        role: 'user', // Establecer el rol por defecto
+        packetsIds: [],
+        isProfileComplete: false,
+        role: 'user',
+        deliveryProfile: null,
       );
       final createdUser = await UserService.createUser(nouUsuari);
       _users.add(createdUser);
@@ -99,15 +101,16 @@ class UserProvider with ChangeNotifier {
     _setError(null);
 
     final nouUsuari = User(
-      id: currentUser.id, // Mantenemos el ID actual
+      id: currentUser.id,
       name: nom,
       email: email,
-      password: currentUser.password, // Mantenemos la contraseña actual
+      password: currentUser.password,
       phone: phone,
-      birthdate: currentUser.birthdate, // Mantenemos la fecha de nacimiento actual
-      packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
-      isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
-      role: currentUser.role, // Mantener el rol actual
+      birthdate: currentUser.birthdate,
+      packetsIds: currentUser.packetsIds,
+      isProfileComplete: currentUser.isProfileComplete,
+      role: currentUser.role,
+      deliveryProfile: currentUser.deliveryProfile, 
     );
 
     try {
@@ -121,59 +124,6 @@ class UserProvider with ChangeNotifier {
       }
     } catch (e) {
       _setError('Error modificando el usuario: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> eliminarUsuariPerId(String id) async {
-    _setLoading(true);
-    _setError(null);
-
-    try {
-      final success = await UserService.deleteUser(id);
-      if (success) {
-        _users.removeWhere((user) => user.id == id);
-        notifyListeners();
-      }
-      return success;
-    } catch (e) {
-      _setError('Error deleting user: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> canviarContrasenya(String password) async {
-    _setLoading(true);
-    _setError(null);
-
-    final newUser = User(
-      id: currentUser.id,
-      name: currentUser.name,
-      email: currentUser.email,
-      password: password,
-      phone: currentUser.phone,
-      birthdate: currentUser.birthdate,
-      packetsIds: currentUser.packetsIds, // Mantenemos los identificadores de paquetes actuales
-      isProfileComplete: currentUser.isProfileComplete, // Mantener el estado actual
-      role: currentUser.role, // Mantener el rol actual
-    );
-
-    try {
-      final user = await UserService.updateUser(currentUser.id!, newUser);
-
-      if (user != null) {
-        setCurrentUser(user);
-        return true;
-      } else {
-        _setError('Error cambiando contraseña: Usuario no encontrado');
-        return false;
-      }
-    } catch (e) {
-      _setError('Error cambiando contraseña: $e');
       return false;
     } finally {
       _setLoading(false);
