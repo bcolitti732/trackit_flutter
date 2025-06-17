@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951322629884",
+    "project_id": "trackit-8be2a",
+    "storage_bucket": "trackit-8be2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951322629884:android:f7c28fd4f05865989fe979",
+        "android_client_info": {
+          "package_name": "om.example.seminari_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3B037p-klVF0N-XEnJqi-GgRBuIHFx-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

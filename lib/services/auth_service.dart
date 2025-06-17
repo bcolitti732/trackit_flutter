@@ -28,8 +28,8 @@ class AuthService {
   }
 
   static String get _baseUrl {
-    const localUrl = 'http://localhost:4000/api/auth';
-    const androidUrl = 'http://10.0.2.2:4000/api/auth';
+    const localUrl = 'http://192.168.1.144:4000/api/auth';
+    const androidUrl = 'http://192.168.1.144:4000/api/auth';
 
     if (kIsWeb) {
       return localUrl;
@@ -65,11 +65,16 @@ class AuthService {
     final body = json.encode({'email': email, 'password': password});
 
     try {
+      print('Enviando solicitud de inicio de sesión a $url con cuerpo: $body');
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
+
+      print('Estado de la respuesta: ${response.statusCode}');
+      print('Cuerpo de la respuesta: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -87,8 +92,8 @@ class AuthService {
         return {'error': 'Email o contraseña incorrectos'};
       }
     } catch (e) {
-      print('Error de conexión: $e');
-      return {'error': 'Error de conexión'};
+      print('Error de conexión o decodificación: $e');
+      return {'error': 'Error de conexión o decodificación: $e'};
     }
   }
 
