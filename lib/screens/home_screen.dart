@@ -177,15 +177,46 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUserAndPackets(context).then((_) {
-      final socketProvider = Provider.of<SocketProvider>(context, listen: false);
-      final socket = socketProvider.socket;
-
-      socket?.on('unseen_messages', (data) {
+      final socketProvider = Provider.of<SocketProvider>(context, listen: false);      
+      socketProvider.on('unseen_messages', (data) {
+        print('Unseen messages data: $data');
         if (data is List && data.isNotEmpty) {
           _showUnseenMessagesNotification(data.length);
         }
       });
+      socketProvider.on('packet_assigned', (data) {
+        _showNotification();
+      });
     });
+  }
+  void _showNotification() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 8,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              Icons.notifications_active,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '¡Tienes un nuevo paquete asignado!',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 10),
+      ),
+    );
   }
 
   void _showUnseenMessagesNotification(int count) {

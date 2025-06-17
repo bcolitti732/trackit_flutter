@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:go_router/go_router.dart';
 import '../models/message.dart';
@@ -23,7 +24,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  IO.Socket? socket;
+  late SocketProvider socketProvider;
   List<Message> messageList = [];
   String? roomId;
   final TextEditingController _controller = TextEditingController();
@@ -32,61 +33,51 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    socketProvider = Provider.of<SocketProvider>(context, listen: false);
     _initSocket();
-   //> _fetchMessages();
+    _fetchMessages();    
   }
 
-  Future<void> _initSocket() async {
-    const storage = FlutterSecureStorage();
-    final token = await storage.read(key: 'flutter.accessToken');
-    print('Token: $token');
-    socket = IO.io('http://localhost:4005', <String, dynamic>{
-      'transports': <String>['websocket'],
-      'autoConnect': false,
-      'auth': {
-        'token': token, //oki
-      },
-    });
-    socket?.connect();
-    print('Socket connected: ${socket?.connected}');
-    socket?.on('receive_message', (data) {
+  void _initSocket() {
+    socketProvider.on('receive_message', (data) {
       setState(() {
         messageList.add(Message.fromJson(Map<String, dynamic>.from(data)));
       });
       _scrollToBottom();
     });
-    socket?.on('connect', (_) {
-      print('Socket conectado correctamente');
-      print('Socket connected: ${socket?.connected}'); // Aquí será true
-    });
-    socket?.on('status', (data) {
+
+    socketProvider.on('status', (data) {
       if (data['status'] == 'unauthorized') {
         if (!mounted) return;
         GoRouter.of(context).go('/login');
       }
     });
   }
-Future<void> _fetchMessages() async {
-  final messagesProvider = Provider.of<MessagesProvider>(
-    context,
-    listen: false,
-  );
-  await messagesProvider.fetchMessages(
-    widget.currentUser.id ?? '',
-    widget.contact.id ?? '',
-  );
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!mounted) return;
-    setState(() {
-      messageList = List<Message>.from(messagesProvider.messages);
-      if (messageList.isNotEmpty) {
-        roomId = messageList[0].roomId;
-        socket?.emit('join_room', roomId);
-      }
+
+  Future<void> _fetchMessages() async {
+    final messagesProvider = Provider.of<MessagesProvider>(
+      context,
+      listen: false,
+    );
+
+    await messagesProvider.fetchMessages(
+      widget.currentUser.id ?? '',
+      widget.contact.id ?? '',
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        messageList = List<Message>.from(messagesProvider.messages);
+        if (messageList.isNotEmpty) {
+          roomId = messageList[0].roomId;
+          socketProvider.emit('join_room', roomId);
+        }
+      });
+      _scrollToBottom();
     });
-    _scrollToBottom();
-  });
-}
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -97,7 +88,7 @@ Future<void> _fetchMessages() async {
 
   void sendMessage() {
     if (_controller.text.trim().isEmpty) return;
-    print(widget.contact.id);
+
     final msg = Message(
       senderId: widget.currentUser.id ?? '',
       rxId: widget.contact.id ?? '',
@@ -106,17 +97,21 @@ Future<void> _fetchMessages() async {
       acknowledged: false,
       roomId: roomId ?? '',
     );
-    socket?.emit('send_message', msg.toJson());
+
+    socketProvider.emit('send_message', msg.toJson());
+
     setState(() {
       messageList.add(msg);
       _controller.clear();
     });
+
     _scrollToBottom();
   }
 
   @override
   void dispose() {
-    socket?.disconnect();
+    socketProvider.off('receive_message');
+    socketProvider.off('status');
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();

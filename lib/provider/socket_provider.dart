@@ -50,7 +50,15 @@ class SocketProvider with ChangeNotifier {
     _socket.emit(event, data);
   }
 
+  void emitVacio(String event) {
+    _socket.emit(event);
+  }
+
   void on(String event, Function(dynamic) handler) {
     _socket.on(event, handler);
+  }
+
+  void off(String event) {
+    _socket.off(event);
   }
 }

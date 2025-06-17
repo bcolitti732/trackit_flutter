@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
 import '../provider/messages_provider.dart';
 import '../services/UserService.dart';
 import '../provider/users_provider.dart';
@@ -60,6 +61,9 @@ void initState() {
                   listen: false,
                 );
                 final currentUser = userProvider.currentUser;
+                  // Emitir evento 'messages_seen' antes de navegar
+                final socketProvider = Provider.of<SocketProvider>(context, listen: false);
+                socketProvider.emitVacio('messages_seen');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
