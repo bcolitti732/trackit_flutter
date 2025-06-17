@@ -176,8 +176,67 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserAndPackets(context);
+    _loadUserAndPackets(context).then((_) {
+      final socketProvider = Provider.of<SocketProvider>(context, listen: false);
+      final socket = socketProvider.socket;
+
+      socket?.on('unseen_messages', (data) {
+        if (data is List && data.isNotEmpty) {
+          _showUnseenMessagesNotification(data.length);
+        }
+      });
+    });
   }
+
+  void _showUnseenMessagesNotification(int count) {
+    if (!mounted) return;
+    final message = count == 1
+        ? 'Tienes 1 mensaje sin leer.'
+        : 'Tienes $count mensajes sin leer.';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 8,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              Icons.mail_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mensajes sin leer',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 10),
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
