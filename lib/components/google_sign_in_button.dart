@@ -1,7 +1,5 @@
-import 'dart:html' as html;
-import 'dart:js' as js;
 import 'package:flutter/material.dart';
-import 'package:fastor_app_ui_widget/fastor_app_ui_widget.dart' if (dart.library.html) 'dart:ui' as ui;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInButton extends StatefulWidget {
   final Function(String idToken) onSignInSuccess;
@@ -18,63 +16,49 @@ class GoogleSignInButton extends StatefulWidget {
 }
 
 class _GoogleSignInButtonState extends State<GoogleSignInButton> {
-  @override
-  void initState() {
-    super.initState();
-    if (const bool.fromEnvironment('dart.library.html', defaultValue: false)) {
-      _initializeGoogleSignInButton();
-    }
-  }
+ final GoogleSignIn _googleSignIn = GoogleSignIn(
+  serverClientId: '517367796264-iet14ll00r610n659l2vonr6auk9sauu.apps.googleusercontent.com',
+  scopes: ['email', 'profile'],
+);
 
-  void _initializeGoogleSignInButton() {
-    ui.platformViewRegistry.registerViewFactory(
-      'google-signin-container',
-      (int viewId) {
-        final div = html.DivElement()
-          ..id = 'google-signin-container'
-          ..style.width = '100%'
-          ..style.height = '100%'
-          ..style.border = 'none';
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account != null) {
+        final GoogleSignInAuthentication auth = await account.authentication;
+        final idToken = auth.idToken;
 
-        final google = js.context['google'];
-        if (google != null) {
-          google['accounts']['id'].callMethod('initialize', [js.JsObject.jsify({
-            'client_id': '517367796264-iet14ll00r610n659l2vonr6auk9sauu.apps.googleusercontent.com',
-            'callback': js.allowInterop(_handleCredentialResponse),
-          })]);
-
-          google['accounts']['id'].callMethod('renderButton', [
-            div,
-            js.JsObject.jsify({
-              'theme': 'outline',
-              'size': 'large',
-            }),
-          ]);
+        if (idToken != null) {
+          widget.onSignInSuccess(idToken);
+        } else {
+          widget.onSignInError('No se recibió el ID token.');
         }
-        return div;
-      },
-    );
-  }
-
-  void _handleCredentialResponse(dynamic response) {
-    final credential = response['credential'];
-    if (credential != null) {
-      widget.onSignInSuccess(credential);
-    } else {
-      widget.onSignInError('No se recibió el ID token.');
+      } else {
+        widget.onSignInError('Inicio de sesión cancelado.');
+      }
+    } catch (error) {
+      widget.onSignInError('Error al iniciar sesión con Google: $error');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!const bool.fromEnvironment('dart.library.html', defaultValue: false)) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      width: 300,
-      height: 60,
-      child: HtmlElementView(viewType: 'google-signin-container'),
+    return ElevatedButton.icon(
+      onPressed: _handleGoogleSignIn,
+      icon: Image.asset(
+        'lib/images/google.png',
+        height: 24,
+        width: 24,
+      ),
+      label: const Text('Sign in with Google'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
     );
   }
 }

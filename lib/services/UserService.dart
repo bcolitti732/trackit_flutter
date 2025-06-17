@@ -11,9 +11,9 @@ class UserService {
     if (kIsWeb) {
       return 'http://localhost:4000/api/users';
     } else if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:4000/api/users';
+      return 'http://192.168.1.144:4000/api/users';
     } else {
-      return 'http://localhost:4000/api/users';
+      return 'localhost:4000/api/users';
     }
   }
 
