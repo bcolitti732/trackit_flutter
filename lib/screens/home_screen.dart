@@ -21,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   User? currentUser;
   bool _isDataLoaded = false;
   IO.Socket? _socket;
-  bool _showNotificationBanner = false;
 
   void _setupSocketNotifications(String token, String userId) {
     _socket = IO.io(
@@ -36,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket!.onConnect((_) => print('Socket.IO conectado'));
     _socket!.on('push_notification', (data) {
       if (mounted) {
-        setState(() => _showNotificationBanner = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -54,11 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     data['body'] ?? '¡Tienes una notificación!',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () =>
-                      setState(() => _showNotificationBanner = false),
                 ),
               ],
             ),
@@ -193,42 +186,27 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icons.local_shipping,
               iconColor: Colors.green,
               packets: repartoPackets,
+              showRoute: true,
+              onViewRoute: (packet) {
+                setState(() {
+                  selectedPacket = packet;
+                });
+              },
             ),
+            if (selectedPacket != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 32.0),
+                child: PacketMap(
+                  origin: _toLatLng(selectedPacket!.origin),
+                  destination: _toLatLng(selectedPacket!.destination),
+                  current: selectedPacket!.location != null
+                      ? _toLatLng(selectedPacket!.location)
+                      : null,
+                ),
+              ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatsRow(BuildContext context, int total, int inDelivery, int inStorage) {
-    Widget statCard(String label, int value, IconData icon, Color color) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white,
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text('$value',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-
-    return Row(
-      children: [
-        statCard('Total Packages', total, Icons.all_inbox, Colors.blue),
-        statCard('In Delivery', inDelivery, Icons.local_shipping, Colors.green),
-        statCard('In Storage', inStorage, Icons.inventory_2, Colors.orange),
-      ],
     );
   }
 
@@ -240,21 +218,24 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color iconColor,
     required List<Packet> packets,
     bool showRoute = false,
-    bool showAdd = false,
     void Function(Packet)? onViewRoute,
-    void Function(String)? onAdd,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          CircleAvatar(backgroundColor: iconColor.withOpacity(.1), child: Icon(icon, color: iconColor)),
+          CircleAvatar(
+            backgroundColor: iconColor.withOpacity(.1),
+            child: Icon(icon, color: iconColor),
+          ),
           const SizedBox(width: 8),
-          Text(title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
         ]),
         const SizedBox(height: 4),
         Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
@@ -284,55 +265,53 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          CircleAvatar(backgroundColor: Colors.grey.shade200, child: Icon(icon, color: iconColor)),
+                          CircleAvatar(
+                            backgroundColor: Colors.grey.shade200,
+                            child: Icon(icon, color: iconColor),
+                          ),
                           const SizedBox(width: 8),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(p.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                p.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                               const SizedBox(height: 4),
-                              Text(p.status, style: TextStyle(color: iconColor, fontWeight: FontWeight.w600)),
+                              Text(
+                                p.status,
+                                style: TextStyle(
+                                  color: iconColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         ]),
                         const SizedBox(height: 12),
                         Text(p.description),
                         const SizedBox(height: 12),
-                        Text('From: ${_toLatLng(p.origin)}  →  To: ${_toLatLng(p.destination)}',
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          'From: ${_toLatLng(p.origin)}  →  To: ${_toLatLng(p.destination)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            if (showRoute)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => onViewRoute?.call(p),
-                                  icon: const Icon(Icons.route),
-                                  label: const Text('View Route'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
+                        if (showRoute)
+                          ElevatedButton.icon(
+                            onPressed: () => onViewRoute?.call(p),
+                            icon: const Icon(Icons.route),
+                            label: const Text('View Route'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            if (showAdd)
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => onAdd?.call(p.id),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Add to Queue'),
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        )
+                            ),
+                          ),
                       ],
                     ),
                   );
@@ -342,24 +321,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
- LatLng _toLatLng(dynamic c) {
-  try {
-    if (c is String) {
-      // Intenta parsear un string tipo "[41.38, 2.17]"
-      final cleaned = c.replaceAll('[', '').replaceAll(']', '');
-      final parts = cleaned.split(',').map((e) => double.parse(e.trim())).toList();
-      return LatLng(parts[0], parts[1]);
-    } else if (c is List) {
-      final list = c.map((e) => (e as num).toDouble()).toList();
-      return LatLng(list[0], list[1]);
-    } else {
-      throw const FormatException('Invalid coordinate format');
+  LatLng _toLatLng(dynamic c) {
+    try {
+      if (c is String) {
+        final cleaned = c.replaceAll('[', '').replaceAll(']', '');
+        final parts =
+            cleaned.split(',').map((e) => double.parse(e.trim())).toList();
+        return LatLng(parts[0], parts[1]);
+      } else if (c is List) {
+        final list = c.map((e) => (e as num).toDouble()).toList();
+        return LatLng(list[0], list[1]);
+      } else {
+        throw const FormatException('Invalid coordinate format');
+      }
+    } catch (e) {
+      debugPrint('Error parsing coordinates: $e');
+      return const LatLng(0, 0);
     }
-  } catch (e) {
-    debugPrint('Error parsing coordinates: $e');
-    return const LatLng(0, 0); // O alguna coordenada por defecto
   }
-}
-
-
 }
