@@ -12,6 +12,8 @@ import 'package:seminari_flutter/services/auth_service.dart';
 import '../models/user.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:latlong2/latlong.dart';
+import '../widgets/RouteMapWidget.dart';
+import '../widgets/UserPacketRouteMapWidget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,76 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
   User? currentUser;
   bool _isDataLoaded = false;
   IO.Socket? _socket;
+  List<Packet> reorderQueue = [];
+  bool isReordering = false;
+  bool _showRouteMap = false;
 
-  // void _setupSocketNotifications(String token, String userId) {
-    
-  //   _socket = IO.io(
-  //     'http://localhost:4005',
-  //     IO.OptionBuilder()
-  //         .setTransports(['websocket'])
-  //         .enableAutoConnect()
-  //         .setAuth({'token': token})
-  //         .build(),
-  //   );
 
-  //   _socket!.onConnect((_) {
-  //     print('Socket.IO conectado para notificaciones');
-  //   });
-
-  //   _socket!.on('push_notification', (data) {
-  //     print('Notificación recibida: $data');
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           backgroundColor: Theme.of(context).colorScheme.surface,
-  //           elevation: 8,
-  //           behavior: SnackBarBehavior.floating,
-  //           shape: RoundedRectangleBorder(
-  //             borderRadius: BorderRadius.circular(16),
-  //           ),
-  //           content: Row(
-  //             children: [
-  //               Icon(
-  //                 Icons.notifications_active,
-  //                 color: Theme.of(context).colorScheme.primary,
-  //               ),
-  //               const SizedBox(width: 12),
-  //               Expanded(
-  //                 child: Column(
-  //                   mainAxisSize: MainAxisSize.min,
-  //                   crossAxisAlignment: CrossAxisAlignment.start,
-  //                   children: [
-  //                     Text(
-  //                       'Notificación',
-  //                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-  //                             fontWeight: FontWeight.bold,
-  //                             color: Theme.of(context).colorScheme.primary,
-  //                           ),
-  //                     ),
-  //                     const SizedBox(height: 4),
-  //                     Text(
-  //                       data['body'] ?? '¡Tienes una notificación!',
-  //                       style: Theme.of(context).textTheme.bodyMedium,
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           duration: const Duration(seconds: 5),
-  //         ),
-  //       );
-  //     }
-  //   });
-
-  //   _socket!.onDisconnect((_) => print('Socket.IO desconectado'));
-  // }
-
-  // @override
-  // void dispose() {
-  //   _socket?.dispose();
-  //   super.dispose();
-  // }
   
   Map<String, dynamic>? parseJwt(String token) {
     try {
@@ -139,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
         userPackets = await UserService.getAllPackets();
       } else {
         for (final packetId in user.packetsIds) {
+          print('Buscando paquete con ID: $packetId');
           final packet = await UserService.getPacketById(packetId);
           userPackets.add(packet);
         }
@@ -156,21 +94,92 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _optimizarRuta() async {
+    if (currentUser == null) return;
+    try {
+      final optimizedPackets = await UserService.getOptimizedRoute(
+        currentUser!,
+      );
+      // Actualiza la cola en el backend
+      await UserService.updateDeliveryQueue(
+        currentUser!.id!,
+        optimizedPackets.map((p) => p.id!).toList(),
+      );
+      setState(() {
+        packets = [
+          ...packets.where((p) => p.status.toLowerCase() == 'almacén'),
+          ...optimizedPackets,
+          ...packets.where((p) => p.status.toLowerCase() == 'entregado'),
+        ];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ruta optimizada y cola actualizada')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al optimizar ruta: $e')));
+    }
+  }
+
   Future<void> _asignarPaqueteAlRepartidor(String packetId) async {
     print('Intentando asignar paquete $packetId al usuario ${currentUser!.id}');
     try {
       await UserService.assignPacketToDelivery(currentUser!.id!, packetId);
-      print('Asignación exitosa, recargando paquetes...');
+      // Cambia el estado del paquete a "en reparto"
+      await UserService.updatePacketStatus(packetId, "en reparto");
+      print(
+        'Asignación y actualización de estado exitosa, recargando paquetes...',
+      );
       await _loadUserAndPackets(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Paquete asignado correctamente')),
       );
     } catch (e) {
       print('Error al asignar paquete: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al asignar paquete: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al asignar paquete: $e')));
     }
+  }
+
+  void _startReorder(List<Packet> assignedPackets) {
+    setState(() {
+      reorderQueue = List.from(assignedPackets);
+      isReordering = true;
+    });
+  }
+
+  Future<void> _saveReorder() async {
+    if (currentUser == null) return;
+    try {
+      await UserService.updateDeliveryQueue(
+        currentUser!.id!,
+        reorderQueue.map((p) => p.id!).toList(),
+      );
+      setState(() {
+        isReordering = false;
+        packets = [
+          ...packets.where((p) => p.status.toLowerCase() == 'almacén'),
+          ...reorderQueue,
+          ...packets.where((p) => p.status.toLowerCase() == 'entregado'),
+        ];
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cola actualizada')));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al actualizar cola: $e')));
+    }
+  }
+
+  void _cancelReorder() {
+    setState(() {
+      isReordering = false;
+      reorderQueue = [];
+    });
   }
 
   @override
@@ -280,23 +289,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (currentUser!.role == 'delivery') {
-      final almacenPackets = packets
-          .where((packet) => packet.status.toLowerCase() == 'almacén')
-          .toList();
+      final almacenPackets =
+          packets
+              .where((packet) => packet.status.toLowerCase() == 'almacén')
+              .toList();
 
       final assignedPacketIds = List<String>.from(
         currentUser!.deliveryProfile?['assignedPacket'] ?? [],
       );
-      final assignedPackets = packets
-          .where((packet) => assignedPacketIds.contains(packet.id))
-          .toList();
+      final assignedPackets =
+          packets
+              .where((packet) => assignedPacketIds.contains(packet.id))
+              .toList();
 
       final deliveredPacketIds = List<String>.from(
         currentUser!.deliveryProfile?['deliveredPackets'] ?? [],
       );
-      final deliveredPackets = packets
-          .where((packet) => deliveredPacketIds.contains(packet.id))
-          .toList();
+      final deliveredPackets =
+          packets
+              .where((packet) => deliveredPacketIds.contains(packet.id))
+              .toList();
 
       return SingleChildScrollView(
         child: Padding(
@@ -310,9 +322,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Bienvenido repartidor, ${currentUser!.name}!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Row(
@@ -330,12 +342,166 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'Asignados a ti',
-                          assignedPackets,
-                          true,
-                          centerContent: true,
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Asignados a ti',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (!isReordering)
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      _startReorder(assignedPackets);
+                                    },
+                                    child: const Text('Reordenar cola'),
+                                  ),
+                                if (isReordering) ...[
+                                  ElevatedButton(
+                                    onPressed: _saveReorder,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                    ),
+                                    child: const Text('Guardar'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: _cancelReorder,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                    ),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (isReordering)
+                              Column(
+                                children: List.generate(reorderQueue.length, (
+                                  index,
+                                ) {
+                                  final packet = reorderQueue[index];
+                                  return Card(
+                                    elevation: 8,
+                                    color: Theme.of(context).cardColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    margin: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 8,
+                                    ),
+                                    child: ListTile(
+                                      leading: Text('#${index + 1}'),
+                                      title: Text(packet.name),
+                                      subtitle: Text(packet.description),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.arrow_upward,
+                                            ),
+                                            onPressed:
+                                                index == 0
+                                                    ? null
+                                                    : () {
+                                                      setState(() {
+                                                        final temp =
+                                                            reorderQueue[index -
+                                                                1];
+                                                        reorderQueue[index -
+                                                                1] =
+                                                            reorderQueue[index];
+                                                        reorderQueue[index] =
+                                                            temp;
+                                                      });
+                                                    },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.arrow_downward,
+                                            ),
+                                            onPressed:
+                                                index == reorderQueue.length - 1
+                                                    ? null
+                                                    : () {
+                                                      setState(() {
+                                                        final temp =
+                                                            reorderQueue[index +
+                                                                1];
+                                                        reorderQueue[index +
+                                                                1] =
+                                                            reorderQueue[index];
+                                                        reorderQueue[index] =
+                                                            temp;
+                                                      });
+                                                    },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              )
+                            else
+                              _buildPacketColumn(
+                                context,
+                                '',
+                                assignedPackets,
+                                false,
+                                centerContent: true,
+                              ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () async {
+                                await _optimizarRuta();
+                              },
+                              child: const Text('Optimizar Ruta'),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed:
+                                  assignedPackets.isEmpty
+                                      ? null
+                                      : () {
+                                        setState(() {
+                                          _showRouteMap = true;
+                                        });
+                                      },
+                              child: const Text('Ver Ruta'),
+                            ),
+                            if (_showRouteMap)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 24.0),
+                                child: Column(
+                                  children: [
+                                    RouteMapWidget(
+                                      queue: assignedPackets,
+                                      startLocation: currentUser?.location,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _showRouteMap = false;
+                                        });
+                                      },
+                                      child: const Text('Cerrar Ruta'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Expanded(
@@ -355,9 +521,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: PacketMap(
                         origin: _toLatLng(selectedPacket!.origin),
                         destination: _toLatLng(selectedPacket!.destination),
-                        current: selectedPacket!.location != null
-                            ? _toLatLng(selectedPacket!.location)
-                            : null,
+                        current:
+                            selectedPacket!.location != null
+                                ? _toLatLng(selectedPacket!.location)
+                                : null,
                       ),
                     ),
                 ],
@@ -368,13 +535,15 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final almacenPackets = packets
-        .where((packet) => packet.status.toLowerCase() == 'almacén')
-        .toList();
+    final almacenPackets =
+        packets
+            .where((packet) => packet.status.toLowerCase() == 'almacén')
+            .toList();
 
-    final repartoPackets = packets
-        .where((packet) => packet.status.toLowerCase() == 'en reparto')
-        .toList();
+    final repartoPackets =
+        packets
+            .where((packet) => packet.status.toLowerCase() == 'en reparto')
+            .toList();
 
     return SingleChildScrollView(
       child: Padding(
@@ -388,9 +557,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'Welcome, ${currentUser!.name}!',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 Row(
@@ -418,9 +587,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: PacketMap(
                       origin: _toLatLng(selectedPacket!.origin),
                       destination: _toLatLng(selectedPacket!.destination),
-                      current: selectedPacket!.location != null
-                          ? _toLatLng(selectedPacket!.location)
-                          : null,
+                      current:
+                          selectedPacket!.location != null
+                              ? _toLatLng(selectedPacket!.location)
+                              : null,
                     ),
                   ),
               ],
@@ -442,17 +612,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+        if (title.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
         if (packets.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -504,20 +674,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     packet.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     packet.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -526,13 +694,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (showRouteButton)
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            selectedPacket = packet;
-                          });
+                        onPressed: () async {
+                          // 1. Busca el repartidor de este paquete
+                          final deliveryUser =
+                              await UserService.getDeliveryForPacket(packet.id);
+                          if (deliveryUser != null) {
+                            // 2. Muestra el mapa en un diálogo
+                            showDialog(
+                              context: context,
+                              builder:
+                                  (_) => AlertDialog(
+                                    title: const Text('Ruta de tu paquete'),
+                                    content: SizedBox(
+                                      width: 500,
+                                      child: UserPacketRouteMapWidget(
+                                        deliveryUser: deliveryUser,
+                                        allPackets:
+                                            packets, // tu lista de todos los paquetes
+                                        packetId: packet.id,
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cerrar'),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'No se encontró repartidor para este paquete',
+                                ),
+                              ),
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -549,27 +751,34 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () async {
                           final confirmed = await showDialog<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Añadir paquete'),
-                              content: const Text('¿Añadir este paquete a tu cola?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text('Cancelar'),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('Añadir paquete'),
+                                  content: const Text(
+                                    '¿Añadir este paquete a tu cola?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () =>
+                                              Navigator.of(context).pop(false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(context).pop(true),
+                                      child: const Text('Sí'),
+                                    ),
+                                  ],
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                  child: const Text('Sí'),
-                                ),
-                              ],
-                            ),
                           );
                           if (confirmed == true) {
                             await _asignarPaqueteAlRepartidor(packet.id);
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
