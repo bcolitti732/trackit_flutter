@@ -14,6 +14,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:latlong2/latlong.dart';
 import '../widgets/RouteMapWidget.dart';
 import '../widgets/UserPacketRouteMapWidget.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -186,16 +187,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUserAndPackets(context).then((_) {
-      final socketProvider = Provider.of<SocketProvider>(context, listen: false);      
+      final socketProvider = Provider.of<SocketProvider>(context, listen: false);
+
+      // Escucha el evento de mensajes no vistos
       socketProvider.on('unseen_messages', (data) {
         print('Unseen messages data: $data');
         if (data is List && data.isNotEmpty) {
           _showUnseenMessagesNotification(data.length);
         }
       });
+
+      // Escucha el evento de paquetes asignados
       socketProvider.on('packet_assigned', (data) {
         _showNotification();
       });
+
+      // Conecta el socket si no está conectado
+      if (!socketProvider.socket.connected) {
+        socketProvider.connect();
+      }
     });
   }
   void _showNotification() {
@@ -709,8 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       width: 500,
                                       child: UserPacketRouteMapWidget(
                                         deliveryUser: deliveryUser,
-                                        allPackets:
-                                            packets, // tu lista de todos los paquetes
+                                        allPackets: packets, // tu lista de todos los paquetes
                                         packetId: packet.id,
                                       ),
                                     ),

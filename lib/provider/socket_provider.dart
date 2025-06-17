@@ -28,6 +28,8 @@ class SocketProvider with ChangeNotifier {
   _socket.onDisconnect((_) {
     print('🔴 Desconectado');
     notifyListeners();
+    print('Intentando reconectar...');
+    _socket.connect(); // Reconecta automáticamente
   });
 
   _socket.onConnectError((data) {
