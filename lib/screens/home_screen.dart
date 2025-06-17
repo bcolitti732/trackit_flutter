@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   User? currentUser;
   bool _isDataLoaded = false;
   IO.Socket? _socket;
+  bool _showNotificationBanner = false;
 
   void _setupSocketNotifications(String token, String userId) {
     _socket = IO.io(
@@ -32,47 +33,32 @@ class _HomeScreenState extends State<HomeScreen> {
           .build(),
     );
 
-    _socket!.onConnect((_) {
-      print('Socket.IO conectado para notificaciones');
-    });
-
+    _socket!.onConnect((_) => print('Socket.IO conectado'));
     _socket!.on('push_notification', (data) {
-      print('Notificación recibida: $data');
       if (mounted) {
+        setState(() => _showNotificationBanner = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).colorScheme.surface,
-            elevation: 8,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             content: Row(
               children: [
-                Icon(
-                  Icons.notifications_active,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.notifications_active,
+                    color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Notificación',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        data['body'] ?? '¡Tienes una notificación!',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
+                  child: Text(
+                    data['body'] ?? '¡Tienes una notificación!',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () =>
+                      setState(() => _showNotificationBanner = false),
                 ),
               ],
             ),
@@ -81,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
-
     _socket!.onDisconnect((_) => print('Socket.IO desconectado'));
   }
 
@@ -91,392 +76,283 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadUserAndPackets(BuildContext context) async {
-    try {
-      final user = await UserService.getCurrentUser();
-      setState(() {
-        currentUser = user;
-      });
-
-      final token = await AuthService.getAccessToken();
-      if (token != null && user.id != null && user.id!.isNotEmpty) {
-        _setupSocketNotifications(token, user.id!);
-      }
-
-      List<Packet> userPackets = [];
-      if (user.role == 'delivery') {
-        userPackets = await UserService.getAllPackets();
-      } else {
-        for (final packetId in user.packetsIds) {
-          final packet = await UserService.getPacketById(packetId);
-          userPackets.add(packet);
-        }
-      }
-
-      setState(() {
-        packets = userPackets;
-        _isDataLoaded = true;
-      });
-    } catch (e) {
-      print('Error al cargar los datos del usuario o los paquetes: $e');
-      throw Exception(
-        'Error al cargar los datos del usuario o los paquetes: $e',
-      );
+  Future<void> _loadUserAndPackets() async {
+    final user = await UserService.getCurrentUser();
+    final token = await AuthService.getAccessToken();
+    if (token != null && user.id != null) {
+      _setupSocketNotifications(token, user.id!);
     }
+    List<Packet> userPackets = [];
+    if (user.role == 'delivery') {
+      userPackets = await UserService.getAllPackets();
+    } else {
+      for (final pid in user.packetsIds) {
+        userPackets.add(await UserService.getPacketById(pid));
+      }
+    }
+    setState(() {
+      currentUser = user;
+      packets = userPackets;
+      _isDataLoaded = true;
+    });
   }
 
-  Future<void> _asignarPaqueteAlRepartidor(String packetId) async {
-    print('Intentando asignar paquete $packetId al usuario ${currentUser!.id}');
-    try {
-      await UserService.assignPacketToDelivery(currentUser!.id!, packetId);
-      print('Asignación exitosa, recargando paquetes...');
-      await _loadUserAndPackets(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paquete asignado correctamente')),
-      );
-    } catch (e) {
-      print('Error al asignar paquete: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al asignar paquete: $e')),
-      );
-    }
+  Future<void> _assignPacket(String packetId) async {
+    await UserService.assignPacketToDelivery(currentUser!.id!, packetId);
+    await _loadUserAndPackets();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Paquete asignado correctamente')),
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    _loadUserAndPackets(context);
+    _loadUserAndPackets();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isDataLoaded) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (currentUser == null) {
-      return const Center(child: Text('No se pudo cargar el usuario.'));
-    }
-
-    if (currentUser!.role == 'delivery') {
-      final almacenPackets = packets
-          .where((packet) => packet.status.toLowerCase() == 'almacén')
-          .toList();
-
-      final assignedPacketIds = List<String>.from(
-        currentUser!.deliveryProfile?['assignedPacket'] ?? [],
-      );
-      final assignedPackets = packets
-          .where((packet) => assignedPacketIds.contains(packet.id))
-          .toList();
-
-      final deliveredPacketIds = List<String>.from(
-        currentUser!.deliveryProfile?['deliveredPackets'] ?? [],
-      );
-      final deliveredPackets = packets
-          .where((packet) => deliveredPacketIds.contains(packet.id))
-          .toList();
-
-      return SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'Bienvenido repartidor, ${currentUser!.name}!',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'En almacén',
-                          almacenPackets,
-                          false,
-                          showAddButton: true,
-                          centerContent: true,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'Asignados a ti',
-                          assignedPackets,
-                          true,
-                          centerContent: true,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'Entregados por ti',
-                          deliveredPackets,
-                          false,
-                          centerContent: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (selectedPacket != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 32.0),
-                      child: PacketMap(
-                        origin: _toLatLng(selectedPacket!.origin),
-                        destination: _toLatLng(selectedPacket!.destination),
-                        current: selectedPacket!.location != null
-                            ? _toLatLng(selectedPacket!.location)
-                            : null,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final almacenPackets = packets
-        .where((packet) => packet.status.toLowerCase() == 'almacén')
-        .toList();
-
-    final repartoPackets = packets
-        .where((packet) => packet.status.toLowerCase() == 'en reparto')
-        .toList();
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Welcome, ${currentUser!.name}!',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildPacketColumn(
-                      context,
-                      AppLocalizations.of(context)!.packagesInStorage,
-                      almacenPackets,
-                      false,
-                      centerContent: true,
-                    ),
-                    _buildPacketColumn(
-                      context,
-                      AppLocalizations.of(context)!.packagesInDelivery,
-                      repartoPackets,
-                      true,
-                      centerContent: true,
-                    ),
-                  ],
-                ),
-                if (selectedPacket != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 32.0),
-                    child: PacketMap(
-                      origin: _toLatLng(selectedPacket!.origin),
-                      destination: _toLatLng(selectedPacket!.destination),
-                      current: selectedPacket!.location != null
-                          ? _toLatLng(selectedPacket!.location)
-                          : null,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: _isDataLoaded
+            ? _buildContent(context)
+            : const Center(child: CircularProgressIndicator()),
       ),
     );
   }
 
-  Widget _buildPacketColumn(
-    BuildContext context,
-    String title,
-    List<Packet> packets,
-    bool showRouteButton, {
-    bool showAddButton = false,
-    bool centerContent = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
+  Widget _buildContent(BuildContext context) {
+    final almacen = packets
+        .where((p) => p.status.toLowerCase() == 'almacén')
+        .toList();
+    final reparto = packets
+        .where((p) => p.status.toLowerCase() == 'en reparto')
+        .toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back, ${currentUser!.name}!',
             style: Theme.of(context)
                 .textTheme
-                .titleLarge
+                .headlineMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        if (packets.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              AppLocalizations.of(context)!.noPackages,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
+          const SizedBox(height: 4),
+          Text(
+            'Manage your packages and deliveries efficiently',
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ...packets.map(
-          (packet) => Align(
-            alignment: Alignment.center,
-            child: _buildPacketCard(
-              context,
-              packet,
-              showRouteButton,
-              showAddButton: showAddButton,
-              height: 150,
-            ),
+          const SizedBox(height: 24),
+
+          _buildStatsRow(context, almacen.length + reparto.length, reparto.length, almacen.length),
+          const SizedBox(height: 24),
+
+          _buildSection(
+            context,
+            title: 'Packages in Storage',
+            subtitle: 'Ready for assignment',
+            icon: Icons.inventory_2,
+            iconColor: Colors.orange,
+            packets: almacen,
+            showAdd: currentUser!.role == 'delivery',
+            onAdd: _assignPacket,
           ),
+
+          const SizedBox(height: 32),
+
+          _buildSection(
+            context,
+            title: 'Packages in Delivery',
+            subtitle: 'Currently en route',
+            icon: Icons.local_shipping,
+            iconColor: Colors.green,
+            packets: reparto,
+            showRoute: true,
+            onViewRoute: (p) => setState(() => selectedPacket = p),
+          ),
+
+          if (selectedPacket != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 32.0),
+              child: PacketMap(
+                origin: _toLatLng(selectedPacket!.origin),
+                destination: _toLatLng(selectedPacket!.destination),
+                current: selectedPacket!.location != null
+                    ? _toLatLng(selectedPacket!.location)
+                    : null,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(BuildContext context, int total, int inDelivery, int inStorage) {
+    Widget statCard(String label, int value, IconData icon, Color color) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
         ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text('$value',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+
+    return Row(
+      children: [
+        statCard('Total Packages', total, Icons.all_inbox, Colors.blue),
+        statCard('In Delivery', inDelivery, Icons.local_shipping, Colors.green),
+        statCard('In Storage', inStorage, Icons.inventory_2, Colors.orange),
       ],
     );
   }
 
-  Widget _buildPacketCard(
-    BuildContext context,
-    Packet packet,
-    bool showRouteButton, {
-    bool showAddButton = false,
-    double height = 150,
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required List<Packet> packets,
+    bool showRoute = false,
+    bool showAdd = false,
+    void Function(Packet)? onViewRoute,
+    void Function(String)? onAdd,
   }) {
-    return SizedBox(
-      height: height,
-      width: 300,
-      child: Card(
-        elevation: 8,
-        color: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    packet.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    packet.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  if (showRouteButton)
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            selectedPacket = packet;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          CircleAvatar(backgroundColor: iconColor.withOpacity(.1), child: Icon(icon, color: iconColor)),
+          const SizedBox(width: 8),
+          Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+        ]),
+        const SizedBox(height: 4),
+        Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 12),
+        packets.isEmpty
+            ? Center(child: Text('No packages'))
+            : Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: packets.map((p) {
+                  return Container(
+                    width: 300,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.black.withOpacity(.05)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                        child: const Text('Ver ruta'),
-                      ),
+                      ],
                     ),
-                  if (showRouteButton && showAddButton)
-                    const SizedBox(width: 8),
-                  if (showAddButton)
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Añadir paquete'),
-                              content: const Text('¿Añadir este paquete a tu cola?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                  child: const Text('Sí'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirmed == true) {
-                            await _asignarPaqueteAlRepartidor(packet.id);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          CircleAvatar(backgroundColor: Colors.grey.shade200, child: Icon(icon, color: iconColor)),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text(p.status, style: TextStyle(color: iconColor, fontWeight: FontWeight.w600)),
+                            ],
                           ),
-                        ),
-                        child: const Text('Añadir a mi cola'),
-                      ),
+                        ]),
+                        const SizedBox(height: 12),
+                        Text(p.description),
+                        const SizedBox(height: 12),
+                        Text('From: ${_toLatLng(p.origin)}  →  To: ${_toLatLng(p.destination)}',
+                            style: Theme.of(context).textTheme.bodySmall),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            if (showRoute)
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () => onViewRoute?.call(p),
+                                  icon: const Icon(Icons.route),
+                                  label: const Text('View Route'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (showAdd)
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => onAdd?.call(p.id),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Add to Queue'),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      ],
                     ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+                  );
+                }).toList(),
+              )
+      ],
     );
   }
 
-  LatLng _toLatLng(dynamic coords) {
-    if (coords is List && coords.length == 2) {
-      return LatLng(coords[0].toDouble(), coords[1].toDouble());
+ LatLng _toLatLng(dynamic c) {
+  try {
+    if (c is String) {
+      // Intenta parsear un string tipo "[41.38, 2.17]"
+      final cleaned = c.replaceAll('[', '').replaceAll(']', '');
+      final parts = cleaned.split(',').map((e) => double.parse(e.trim())).toList();
+      return LatLng(parts[0], parts[1]);
+    } else if (c is List) {
+      final list = c.map((e) => (e as num).toDouble()).toList();
+      return LatLng(list[0], list[1]);
+    } else {
+      throw const FormatException('Invalid coordinate format');
     }
-    if (coords is String) {
-      final parts =
-          coords.split(',').map((e) => double.tryParse(e.trim())).toList();
-      if (parts.length == 2 && parts[0] != null && parts[1] != null) {
-        return LatLng(parts[0]!, parts[1]!);
-      }
-    }
-    return const LatLng(40.4168, -3.7038);
+  } catch (e) {
+    debugPrint('Error parsing coordinates: $e');
+    return const LatLng(0, 0); // O alguna coordenada por defecto
   }
+}
+
+
 }
