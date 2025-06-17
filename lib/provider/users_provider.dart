@@ -35,6 +35,7 @@ class UserProvider with ChangeNotifier {
   }
 
   void setCurrentUser(User user) {
+    print(currentUser);
     currentUser = user;
     notifyListeners();
   }

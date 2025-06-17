@@ -26,10 +26,13 @@ final GoRouter appRouter = GoRouter(
     // Ruta de Contact List (Chat)
     GoRoute(
       path: '/contactList',
-      builder: (context, state) => LayoutWrapper(
-        title: 'Chat',
-        child: const ContactListScreen(),
-      ),
+      builder: (context, state) {
+        print('Navegando a /contactList');
+        return LayoutWrapper(
+          title: 'Chat',
+          child: const ContactListScreen(),
+        );
+      },
     ),
 
     // Ruta de Home

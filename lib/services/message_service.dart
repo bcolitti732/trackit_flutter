@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import '../models/message.dart';
@@ -17,27 +18,46 @@ class MessageService {
   }
 
   // Fetch contacts for a user
-  static Future<List<User>> fetchContacts(String userId) async {
-    try {
-      final url = Uri.parse('$baseUrl/contacts/$userId');
-      final response = await http.get(url, headers: {'Content-Type': 'application/json'});
+// ...existing code...
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => User.fromJson(json)).toList();
-      } else {
-        throw Exception('Error al obtener contactos: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error al obtener contactos: $e');
+static Future<List<User>> fetchContacts(String userId) async {
+  try {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'flutter.accessToken');
+    final url = Uri.parse('$baseUrl/contacts/$userId');
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // <-- Añade el token aquí
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      print('Datos obtenidos: $data');
+      return data.map((json) => User.fromJson(json)).toList();
+    } else {
+      throw Exception('Error al obtener contactos: ${response.statusCode}');
     }
+  } catch (e) {
+    throw Exception('Error al obtener contactos: $e');
   }
+}
+
 
   // Fetch messages between two users
   static Future<List<Message>> fetchMessages(String user1Id, String user2Id) async {
     try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'flutter.accessToken');
       final url = Uri.parse('$baseUrl/$user1Id/$user2Id');
-      final response = await http.get(url, headers: {'Content-Type': 'application/json'});
+      final response = await http.get(url, 
+              headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // <-- Añade el token aquí
+      },
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);

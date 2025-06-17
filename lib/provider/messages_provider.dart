@@ -16,9 +16,13 @@ class MessagesProvider with ChangeNotifier {
 
   Future<void> fetchContacts(String userId) async {
     _isLoading = true;
+    print(userId);
     _error = null;
     notifyListeners();
     try {
+      if(userId.isEmpty) {
+        throw Exception('User ID cannot be empty');
+      }
       _contacts = await MessageService.fetchContacts(userId);
     } catch (e) {
       _error = e.toString();

@@ -94,6 +94,7 @@ class UserService {
 
       if (response.statusCode == 200) {
         final data = response.data; // `response.data` ya es un objeto JSON
+        print(data);
         return User.fromJson(data);
       } else {
         throw Exception('Error al obtener el usuario actual: ${response.statusCode}');

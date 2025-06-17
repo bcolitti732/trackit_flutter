@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
 
 import 'package:seminari_flutter/provider/users_provider.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => SocketProvider()),
         Provider(create: (_) => DioClient()), // Proveedor del cliente Dio
         ProxyProvider<DioClient, AuthService>(
           update: (_, dioClient, __) => AuthService(dioClient),

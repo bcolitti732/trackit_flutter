@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/messages_provider.dart';
+import '../services/UserService.dart';
 import '../provider/users_provider.dart';
 import '../models/user.dart';
 import 'chat_screen.dart';
@@ -14,15 +15,23 @@ class ContactListScreen extends StatefulWidget {
 
 class _ContactListScreenState extends State<ContactListScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final userId = userProvider.currentUser.id;
-      Provider.of<MessagesProvider>(context, listen: false)
-          .fetchContacts(userId!);
-    });
-  }
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.currentUser.id == null) {
+      final user = await UserService.getCurrentUser();
+      userProvider.setCurrentUser(user);
+    }
+    final currentUser = userProvider.currentUser;
+    if (currentUser.id != null) {
+      Provider.of<MessagesProvider>(
+        context,
+        listen: false,
+      ).fetchContacts(currentUser.id!);
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -46,15 +55,19 @@ class _ContactListScreenState extends State<ContactListScreen> {
               title: Text(contact.name ?? 'Sin nombre'),
               subtitle: Text(contact.email ?? ''),
               onTap: () {
-                final userProvider = Provider.of<UserProvider>(context, listen: false);
+                final userProvider = Provider.of<UserProvider>(
+                  context,
+                  listen: false,
+                );
                 final currentUser = userProvider.currentUser;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      currentUser: currentUser,
-                      contact: contact,
-                    ),
+                    builder:
+                        (context) => ChatScreen(
+                          currentUser: currentUser,
+                          contact: contact,
+                        ),
                   ),
                 );
               },

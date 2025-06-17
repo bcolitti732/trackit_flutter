@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
 import 'package:seminari_flutter/provider/theme_provider.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 import 'package:seminari_flutter/provider/locale_provider.dart';
@@ -210,6 +211,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final authService =
                         Provider.of<AuthService>(context, listen: false);
                     authService.logout();
+                    SocketProvider socketProvider = Provider.of<SocketProvider>(context, listen: false);
+                    socketProvider.disconnect();
                     context.go('/login');
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(

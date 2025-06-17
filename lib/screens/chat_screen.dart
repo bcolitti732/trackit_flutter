@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:go_router/go_router.dart';
 import '../models/message.dart';
 import '../models/user.dart';
 import '../provider/messages_provider.dart';
@@ -31,44 +33,50 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _initSocket();
-    _fetchMessages();
+   //> _fetchMessages();
   }
 
-  void _initSocket() {
-    final token = AuthService.accessToken ?? '';
-    socket = IO.io('http://localhost:3001', <String, dynamic>{
-      'transports': ['websocket'],
+  Future<void> _initSocket() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'flutter.accessToken');
+    print('Token: $token');
+    socket = IO.io('http://localhost:4005', <String, dynamic>{
+      'transports': <String>['websocket'],
       'autoConnect': false,
       'auth': {
         'token': token, //oki
       },
     });
     socket?.connect();
-
+    print('Socket connected: ${socket?.connected}');
     socket?.on('receive_message', (data) {
       setState(() {
         messageList.add(Message.fromJson(Map<String, dynamic>.from(data)));
       });
       _scrollToBottom();
     });
-
+    socket?.on('connect', (_) {
+      print('Socket conectado correctamente');
+      print('Socket connected: ${socket?.connected}'); // Aquí será true
+    });
     socket?.on('status', (data) {
       if (data['status'] == 'unauthorized') {
-        Navigator.of(context).pushReplacementNamed('/login');
+        if (!mounted) return;
+        GoRouter.of(context).go('/login');
       }
     });
   }
-
-  Future<void> _fetchMessages() async {
-    final messagesProvider = Provider.of<MessagesProvider>(
-      context,
-      listen: false,
-    );
-    await messagesProvider.fetchMessages(
-      
-      widget.currentUser.id ?? '',
-      widget.contact.id ?? '',
-    );
+Future<void> _fetchMessages() async {
+  final messagesProvider = Provider.of<MessagesProvider>(
+    context,
+    listen: false,
+  );
+  await messagesProvider.fetchMessages(
+    widget.currentUser.id ?? '',
+    widget.contact.id ?? '',
+  );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
     setState(() {
       messageList = List<Message>.from(messagesProvider.messages);
       if (messageList.isNotEmpty) {
@@ -77,8 +85,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
     _scrollToBottom();
-  }
-
+  });
+}
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {

@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
+import 'package:seminari_flutter/provider/users_provider.dart';
 import '../models/packet.dart';
 import '../widgets/packet_map.dart';
 import 'package:seminari_flutter/services/UserService.dart';
@@ -22,73 +27,91 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isDataLoaded = false;
   IO.Socket? _socket;
 
-  void _setupSocketNotifications(String token, String userId) {
-    _socket = IO.io(
-      'http://localhost:4005',
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .enableAutoConnect()
-          .setAuth({'token': token})
-          .build(),
-    );
+  // void _setupSocketNotifications(String token, String userId) {
+    
+  //   _socket = IO.io(
+  //     'http://localhost:4005',
+  //     IO.OptionBuilder()
+  //         .setTransports(['websocket'])
+  //         .enableAutoConnect()
+  //         .setAuth({'token': token})
+  //         .build(),
+  //   );
 
-    _socket!.onConnect((_) {
-      print('Socket.IO conectado para notificaciones');
-    });
+  //   _socket!.onConnect((_) {
+  //     print('Socket.IO conectado para notificaciones');
+  //   });
 
-    _socket!.on('push_notification', (data) {
-      print('Notificación recibida: $data');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            elevation: 8,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Row(
-              children: [
-                Icon(
-                  Icons.notifications_active,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Notificación',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        data['body'] ?? '¡Tienes una notificación!',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
+  //   _socket!.on('push_notification', (data) {
+  //     print('Notificación recibida: $data');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           backgroundColor: Theme.of(context).colorScheme.surface,
+  //           elevation: 8,
+  //           behavior: SnackBarBehavior.floating,
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           content: Row(
+  //             children: [
+  //               Icon(
+  //                 Icons.notifications_active,
+  //                 color: Theme.of(context).colorScheme.primary,
+  //               ),
+  //               const SizedBox(width: 12),
+  //               Expanded(
+  //                 child: Column(
+  //                   mainAxisSize: MainAxisSize.min,
+  //                   crossAxisAlignment: CrossAxisAlignment.start,
+  //                   children: [
+  //                     Text(
+  //                       'Notificación',
+  //                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
+  //                             fontWeight: FontWeight.bold,
+  //                             color: Theme.of(context).colorScheme.primary,
+  //                           ),
+  //                     ),
+  //                     const SizedBox(height: 4),
+  //                     Text(
+  //                       data['body'] ?? '¡Tienes una notificación!',
+  //                       style: Theme.of(context).textTheme.bodyMedium,
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           duration: const Duration(seconds: 5),
+  //         ),
+  //       );
+  //     }
+  //   });
+
+  //   _socket!.onDisconnect((_) => print('Socket.IO desconectado'));
+  // }
+
+  // @override
+  // void dispose() {
+  //   _socket?.dispose();
+  //   super.dispose();
+  // }
+  
+  Map<String, dynamic>? parseJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        return null;
       }
-    });
-
-    _socket!.onDisconnect((_) => print('Socket.IO desconectado'));
-  }
-
-  @override
-  void dispose() {
-    _socket?.dispose();
-    super.dispose();
+      final payload = parts[1];
+      // Base64Url decode
+      String normalized = base64Url.normalize(payload);
+      final payloadBytes = base64Url.decode(normalized);
+      final jsonString = utf8.decode(payloadBytes);
+      return json.decode(jsonString) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> _loadUserAndPackets(BuildContext context) async {
@@ -97,10 +120,18 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         currentUser = user;
       });
-
+      Provider.of<UserProvider>(context, listen: false).setCurrentUser(user);
       final token = await AuthService.getAccessToken();
       if (token != null && user.id != null && user.id!.isNotEmpty) {
-        _setupSocketNotifications(token, user.id!);
+          
+          final payload = parseJwt(token);
+          print('Parsed JWT payload: $payload');
+          if (payload != null && payload['email'] != null) {    
+            SocketProvider socketProvider = Provider.of<SocketProvider>(context, listen: false);  
+            print(payload['email']);    
+            socketProvider.emit('email', [payload['email'], payload['role']]);
+          }  
+        //_setupSocketNotifications(token, user.id!);
       }
 
       List<Packet> userPackets = [];

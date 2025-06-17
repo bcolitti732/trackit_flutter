@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:seminari_flutter/components/my_textfield.dart';
 import 'package:seminari_flutter/components/my_button.dart';
 import 'package:seminari_flutter/components/google_sign_in_button.dart';
+import 'package:seminari_flutter/provider/socket_provider.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -23,7 +24,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
+  String? token;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -85,6 +86,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
   Future<void> _sendIdTokenToBackend(String idToken) async {
     if (!mounted) return;
 
@@ -105,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
 
         final authService = Provider.of<AuthService>(context, listen: false);
         authService.saveTokens(data['accessToken'], data['refreshToken']);
-
+        token = data['accessToken'];
         final isProfileComplete = data['user']['isProfileComplete'] ?? false;
 
         if (isProfileComplete) {
@@ -147,13 +149,18 @@ class _LoginPageState extends State<LoginPage> {
       final authService = Provider.of<AuthService>(context, listen: false);
 
       final result = await authService.login(email, password);
-
+      
       if (result.containsKey('error')) {
         _showError(result['error']);
       } else {
+        print('Login successful: $result');
         final isProfileComplete = result['isProfileComplete'] as bool;
-
+        
         if (isProfileComplete) {
+          print('Profile is complete, connecting socket');
+          SocketProvider socketProvider = Provider.of<SocketProvider>(context, listen: false);
+          socketProvider.connect();
+        
           context.go('/');
         } else {
           context.go('/complete-profile');
