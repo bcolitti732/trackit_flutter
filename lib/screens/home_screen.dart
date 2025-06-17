@@ -77,24 +77,44 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserAndPackets() async {
-    final user = await UserService.getCurrentUser();
-    final token = await AuthService.getAccessToken();
-    if (token != null && user.id != null) {
-      _setupSocketNotifications(token, user.id!);
-    }
-    List<Packet> userPackets = [];
-    if (user.role == 'delivery') {
-      userPackets = await UserService.getAllPackets();
-    } else {
-      for (final pid in user.packetsIds) {
-        userPackets.add(await UserService.getPacketById(pid));
+    try {
+      final user = await UserService.getCurrentUser();
+      if (user == null || user.id == null || user.id!.isEmpty) {
+        throw Exception('Usuario inválido o no encontrado.');
       }
+
+      final token = await AuthService.getAccessToken();
+      if (token != null && user.id != null && user.id!.isNotEmpty) {
+        _setupSocketNotifications(token, user.id!);
+      }
+
+      List<Packet> userPackets = [];
+      if (user.role == 'delivery') {
+        userPackets = await UserService.getAllPackets();
+        if (userPackets.isEmpty) {
+          print('No hay paquetes disponibles para el rol delivery.');
+        }
+      } else {
+        for (final pid in user.packetsIds) {
+          final packet = await UserService.getPacketById(pid);
+          userPackets.add(packet);
+        }
+      }
+
+      setState(() {
+        currentUser = user;
+        packets = userPackets;
+        _isDataLoaded = true;
+      });
+    } catch (e) {
+      print('Error al cargar los datos del usuario o los paquetes: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar datos: $e')),
+      );
+      setState(() {
+        _isDataLoaded = true; // Para evitar que se quede en un estado de carga infinito
+      });
     }
-    setState(() {
-      currentUser = user;
-      packets = userPackets;
-      _isDataLoaded = true;
-    });
   }
 
   Future<void> _assignPacket(String packetId) async {
@@ -124,71 +144,58 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final almacen = packets
-        .where((p) => p.status.toLowerCase() == 'almacén')
+    if (currentUser == null) {
+      return const Center(
+        child: Text('No se pudo cargar el usuario.'),
+      );
+    }
+
+    if (packets.isEmpty) {
+      return const Center(
+        child: Text('No hay paquetes disponibles.'),
+      );
+    }
+
+    final almacenPackets = packets
+        .where((packet) => packet.status.toLowerCase() == 'almacén')
         .toList();
-    final reparto = packets
-        .where((p) => p.status.toLowerCase() == 'en reparto')
+    final repartoPackets = packets
+        .where((packet) => packet.status.toLowerCase() == 'en reparto')
         .toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome back, ${currentUser!.name}!',
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Manage your packages and deliveries efficiently',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-
-          _buildStatsRow(context, almacen.length + reparto.length, reparto.length, almacen.length),
-          const SizedBox(height: 24),
-
-          _buildSection(
-            context,
-            title: 'Packages in Storage',
-            subtitle: 'Ready for assignment',
-            icon: Icons.inventory_2,
-            iconColor: Colors.orange,
-            packets: almacen,
-            showAdd: currentUser!.role == 'delivery',
-            onAdd: _assignPacket,
-          ),
-
-          const SizedBox(height: 32),
-
-          _buildSection(
-            context,
-            title: 'Packages in Delivery',
-            subtitle: 'Currently en route',
-            icon: Icons.local_shipping,
-            iconColor: Colors.green,
-            packets: reparto,
-            showRoute: true,
-            onViewRoute: (p) => setState(() => selectedPacket = p),
-          ),
-
-          if (selectedPacket != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 32.0),
-              child: PacketMap(
-                origin: _toLatLng(selectedPacket!.origin),
-                destination: _toLatLng(selectedPacket!.destination),
-                current: selectedPacket!.location != null
-                    ? _toLatLng(selectedPacket!.location)
-                    : null,
-              ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome, ${currentUser!.name}!',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
-        ],
+            const SizedBox(height: 32),
+            _buildSection(
+              context,
+              title: 'Packages in Storage',
+              subtitle: 'Paquetes almacenados',
+              icon: Icons.storage,
+              iconColor: Colors.blue,
+              packets: almacenPackets,
+            ),
+            const SizedBox(height: 32),
+            _buildSection(
+              context,
+              title: 'Packages in Delivery',
+              subtitle: 'Paquetes en reparto',
+              icon: Icons.local_shipping,
+              iconColor: Colors.green,
+              packets: repartoPackets,
+            ),
+          ],
+        ),
       ),
     );
   }

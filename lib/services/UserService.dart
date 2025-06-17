@@ -135,7 +135,7 @@ class UserService {
   }
 
   static Future<List<Packet>> getAllPackets() async {
-  final response = await http.get(Uri.parse('http://localhost:4000/api/packets'));
+  final response = await http.get(Uri.parse('http://192.168.1.144:4000/api/packets'));
   if (response.statusCode == 200) {
     final decoded = jsonDecode(response.body);
     final List<dynamic> data = decoded is List ? decoded : decoded['data'];
@@ -148,7 +148,7 @@ class UserService {
 static Future<void> assignPacketToDelivery(String userId, String packetId) async {
   print('Llamando a backend para asignar paquete...');
   final response = await http.post(
-    Uri.parse('http://localhost:4000/api/users/assign-packet'),
+    Uri.parse('http://192.168.1.144:4000/api/users/assign-packet'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'userId': userId, 'packetId': packetId}),
   );
