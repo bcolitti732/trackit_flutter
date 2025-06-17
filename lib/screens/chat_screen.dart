@@ -161,9 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              msg.created.hour.toString().padLeft(2, '0') +
-                                  ':' +
-                                  msg.created.minute.toString().padLeft(2, '0'),
+                              '${msg.created.hour.toString().padLeft(2, '0')}:${msg.created.minute.toString().padLeft(2, '0')}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.black54,

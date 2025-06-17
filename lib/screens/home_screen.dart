@@ -410,7 +410,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             selectedPacket = packet;
                           });
                         },
-                        child: const Text('Ver ruta'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
@@ -418,6 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                        child: const Text('Ver ruta'),
                       ),
                     ),
                   if (showRouteButton && showAddButton)
@@ -447,7 +447,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             await _asignarPaqueteAlRepartidor(packet.id);
                           }
                         },
-                        child: const Text('Añadir a mi cola'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
@@ -455,6 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                        child: const Text('Añadir a mi cola'),
                       ),
                     ),
                 ],

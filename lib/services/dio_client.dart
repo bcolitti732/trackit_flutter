@@ -39,7 +39,7 @@ class DioClient {
         print('Respuesta recibida: ${response.statusCode}');
         return handler.next(response); // Continuar con la respuesta
       },
-      onError: (DioError error, handler) {
+      onError: (DioException error, handler) {
         // Manejar errores globalmente
         print('Error ocurrido: ${error.message}');
         if (error.response?.statusCode == 401) {

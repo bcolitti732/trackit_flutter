@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:seminari_flutter/models/user.dart';
 import 'package:seminari_flutter/services/dio_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 

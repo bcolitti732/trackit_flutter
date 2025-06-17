@@ -127,7 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -182,7 +182,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     Text(
                       loc.alreadyHaveAccount,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onBackground,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(width: 4),

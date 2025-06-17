@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:seminari_flutter/models/user.dart';
 import 'package:provider/provider.dart';
 
 import 'package:seminari_flutter/components/my_textfield.dart';

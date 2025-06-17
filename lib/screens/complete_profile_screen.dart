@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
+  const CompleteProfileScreen({super.key});
+
   @override
   _CompleteProfileScreenState createState() => _CompleteProfileScreenState();
 }

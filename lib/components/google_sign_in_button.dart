@@ -8,10 +8,10 @@ class GoogleSignInButton extends StatefulWidget {
   final Function(String error) onSignInError;
 
   const GoogleSignInButton({
-    Key? key,
+    super.key,
     required this.onSignInSuccess,
     required this.onSignInError,
-  }) : super(key: key);
+  });
 
   @override
   State<GoogleSignInButton> createState() => _GoogleSignInButtonState();

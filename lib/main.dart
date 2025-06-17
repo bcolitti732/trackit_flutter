@@ -25,17 +25,18 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        Provider(create: (_) => DioClient()),
+        Provider(create: (_) => DioClient()), // Proveedor del cliente Dio
         ProxyProvider<DioClient, AuthService>(
           update: (_, dioClient, __) => AuthService(dioClient),
-        ),
+        ), // Proveedor de AuthService que usa DioClient
         ChangeNotifierProvider(create: (_) => MessagesProvider()),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, child) {
-          return MaterialApp(
+          return MaterialApp.router(
             title: 'Flutter Demo',
             debugShowCheckedModeBanner: false,
+            routerConfig: appRouter,
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(
@@ -43,6 +44,35 @@ class MyApp extends StatelessWidget {
                 brightness: Brightness.light,
               ),
               scaffoldBackgroundColor: Colors.white,
+              appBarTheme: const AppBarTheme(
+                centerTitle: false,
+                elevation: 0,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.blue.shade50,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  elevation: 2,
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                filled: true,
+                fillColor: Colors.blue.shade50,
+              ),
             ),
             darkTheme: ThemeData(
               useMaterial3: true,
@@ -51,6 +81,35 @@ class MyApp extends StatelessWidget {
                 brightness: Brightness.dark,
               ),
               scaffoldBackgroundColor: Colors.black,
+              appBarTheme: const AppBarTheme(
+                centerTitle: false,
+                elevation: 0,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.blueGrey.shade900,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  elevation: 2,
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                filled: true,
+                fillColor: Colors.blueGrey.shade800,
+              ),
             ),
             themeMode: themeProvider.themeMode,
             locale: localeProvider.locale,
@@ -61,14 +120,6 @@ class MyApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const Scaffold(
-              body: Center(
-                child: Text(
-                  '¡Funciona!',
-                  style: TextStyle(fontSize: 32),
-                ),
-              ),
-            ),
           );
         },
       ),

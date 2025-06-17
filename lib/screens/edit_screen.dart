@@ -196,7 +196,7 @@ class _EditarScreenState extends State<EditScreen> {
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceVariant,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       obscureText: obscureText,
       keyboardType: keyboardType,

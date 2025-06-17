@@ -53,7 +53,7 @@ class _LayoutWrapperState extends State<LayoutWrapper> {
         elevation: 2,
       ),
       body: Container(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.1),
         child: widget.child,
       ),
       bottomNavigationBar: BottomNavigationBar(

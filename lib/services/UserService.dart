@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:intl/intl.dart';
 import '../services/dio_client.dart';
 import '../models/user.dart';
 import '../models/packet.dart';

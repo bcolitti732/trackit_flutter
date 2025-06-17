@@ -115,14 +115,9 @@ class UserProvider with ChangeNotifier {
 
     try {
       final updatedUser = await UserService.updateUser(currentUser.id!, nouUsuari);
-      if (updatedUser != null) {
-        setCurrentUser(updatedUser);
-        return true;
-      } else {
-        _setError('Error: El servicio devolvió un usuario nulo');
-        return false;
-      }
-    } catch (e) {
+      setCurrentUser(updatedUser);
+      return true;
+        } catch (e) {
       _setError('Error modificando el usuario: $e');
       return false;
     } finally {
