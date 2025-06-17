@@ -309,205 +309,263 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (currentUser!.role == 'delivery') {
-      final almacenPackets =
-          packets
-              .where((packet) => packet.status.toLowerCase() == 'almacén')
-              .toList();
+      final almacenPackets = packets
+          .where((packet) => packet.status.toLowerCase() == 'almacén')
+          .toList();
 
       final assignedPacketIds = List<String>.from(
         currentUser!.deliveryProfile?['assignedPacket'] ?? [],
       );
-      final assignedPackets =
-          packets
-              .where((packet) => assignedPacketIds.contains(packet.id))
-              .toList();
+      final assignedPackets = packets
+          .where((packet) => assignedPacketIds.contains(packet.id))
+          .toList();
 
       final deliveredPacketIds = List<String>.from(
         currentUser!.deliveryProfile?['deliveredPackets'] ?? [],
       );
-      final deliveredPackets =
-          packets
-              .where((packet) => deliveredPacketIds.contains(packet.id))
-              .toList();
+      final deliveredPackets = packets
+          .where((packet) => deliveredPacketIds.contains(packet.id))
+          .toList();
 
       return SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
+              constraints: const BoxConstraints(maxWidth: 900),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'Bienvenido repartidor, ${currentUser!.name}!',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _buildPacketColumn(
-                        context,
-                        'En almacén',
-                        almacenPackets,
-                        false,
-                        showAddButton: true,
-                        centerContent: true,
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 32,
+                        horizontal: 24,
                       ),
-                      const SizedBox(height: 16), // Espaciado entre secciones
-                      Column(
+                      child: Column(
                         children: [
                           Text(
-                            'Asignados a ti',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            '¡Bienvenido, ${currentUser!.name}!',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          if (!isReordering)
-                            ElevatedButton(
-                              onPressed: () {
-                                _startReorder(assignedPackets);
-                              },
-                              child: const Text('Reordenar cola'),
-                            ),
-                          if (isReordering) ...[
-                            ElevatedButton(
-                              onPressed: _saveReorder,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                              ),
-                              child: const Text('Guardar'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: _cancelReorder,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                              ),
-                              child: const Text('Cancelar'),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          if (isReordering)
-                            Column(
-                              children: List.generate(reorderQueue.length, (index) {
-                                final packet = reorderQueue[index];
-                                return Card(
-                                  elevation: 8,
-                                  color: Theme.of(context).cardColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 8,
-                                  ),
-                                  child: ListTile(
-                                    leading: Text('#${index + 1}'),
-                                    title: Text(packet.name),
-                                    subtitle: Text(packet.description),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.arrow_upward),
-                                          onPressed: index == 0
-                                              ? null
-                                              : () {
-                                                  setState(() {
-                                                    final temp =
-                                                        reorderQueue[index - 1];
-                                                    reorderQueue[index - 1] =
-                                                        reorderQueue[index];
-                                                    reorderQueue[index] = temp;
-                                                  });
-                                                },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.arrow_downward),
-                                          onPressed: index == reorderQueue.length - 1
-                                              ? null
-                                              : () {
-                                                  setState(() {
-                                                    final temp =
-                                                        reorderQueue[index + 1];
-                                                    reorderQueue[index + 1] =
-                                                        reorderQueue[index];
-                                                    reorderQueue[index] = temp;
-                                                  });
-                                                },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
-                            )
-                          else
-                            _buildPacketColumn(
-                              context,
-                              '',
-                              assignedPackets,
-                              false,
-                              centerContent: true,
-                            ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () async {
-                              await _optimizarRuta();
-                            },
-                            child: const Text('Optimizar Ruta'),
+                          Text(
+                            'Gestiona tus paquetes y optimiza tu ruta de reparto.',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: assignedPackets.isEmpty
-                                ? null
-                                : () {
-                                    setState(() {
-                                      _showRouteMap = true;
-                                    });
-                                  },
-                            child: const Text('Ver Ruta'),
-                          ),
-                          if (_showRouteMap)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 24.0),
-                              child: Column(
-                                children: [
-                                  RouteMapWidget(
-                                    queue: assignedPackets,
-                                    startLocation: currentUser?.location,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showRouteMap = false;
-                                      });
-                                    },
-                                    child: const Text('Cerrar Ruta'),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
-                      const SizedBox(height: 16), // Espaciado entre secciones
-                      _buildPacketColumn(
-                        context,
-                        'Entregados por ti',
-                        deliveredPackets,
-                        false,
-                        centerContent: true,
-                      ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _sectionCard(
+                    context,
+                    icon: Icons.store,
+                    title: 'En almacén',
+                    child: _buildPacketColumn(
+                      context,
+                      '',
+                      almacenPackets,
+                      false,
+                      showAddButton: true,
+                      centerContent: true,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _sectionCard(
+                    context,
+                    icon: Icons.assignment_turned_in,
+                    title: 'Asignados a ti',
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (!isReordering)
+                              FilledButton.icon(
+                                onPressed: () => _startReorder(assignedPackets),
+                                icon: const Icon(Icons.reorder),
+                                label: const Text('Reordenar cola'),
+                              ),
+                            if (isReordering) ...[
+                              FilledButton.icon(
+                                onPressed: _saveReorder,
+                                icon: const Icon(Icons.save),
+                                label: const Text('Guardar'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              FilledButton.icon(
+                                onPressed: _cancelReorder,
+                                icon: const Icon(Icons.cancel),
+                                label: const Text('Cancelar'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (isReordering)
+                          Column(
+                            children: List.generate(reorderQueue.length, (index) {
+                              final packet = reorderQueue[index];
+                              return Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                  horizontal: 0,
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    packet.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text(packet.description),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.arrow_upward),
+                                        onPressed: index == 0
+                                            ? null
+                                            : () {
+                                                setState(() {
+                                                  final temp =
+                                                      reorderQueue[index - 1];
+                                                  reorderQueue[index - 1] =
+                                                      reorderQueue[index];
+                                                  reorderQueue[index] = temp;
+                                                });
+                                              },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.arrow_downward),
+                                        onPressed: index == reorderQueue.length - 1
+                                            ? null
+                                            : () {
+                                                setState(() {
+                                                  final temp =
+                                                      reorderQueue[index + 1];
+                                                  reorderQueue[index + 1] =
+                                                      reorderQueue[index];
+                                                  reorderQueue[index] = temp;
+                                                });
+                                              },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          )
+                        else
+                          _buildPacketColumn(
+                            context,
+                            '',
+                            assignedPackets,
+                            false,
+                            centerContent: true,
+                          ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () async {
+                                await _optimizarRuta();
+                              },
+                              icon: const Icon(Icons.auto_graph),
+                              label: const Text('Optimizar Ruta'),
+                            ),
+                            const SizedBox(width: 12),
+                            FilledButton.icon(
+                              onPressed: assignedPackets.isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _showRouteMap = true;
+                                      });
+                                    },
+                              icon: const Icon(Icons.map),
+                              label: const Text('Ver Ruta'),
+                            ),
+                          ],
+                        ),
+                        if (_showRouteMap)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 24.0),
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  children: [
+                                    RouteMapWidget(
+                                      queue: assignedPackets,
+                                      startLocation: currentUser?.location,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    FilledButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _showRouteMap = false;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.close),
+                                      label: const Text('Cerrar Ruta'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _sectionCard(
+                    context,
+                    icon: Icons.check_circle,
+                    title: 'Entregados por ti',
+                    child: _buildPacketColumn(
+                      context,
+                      '',
+                      deliveredPackets,
+                      false,
+                      centerContent: true,
+                    ),
                   ),
                   if (selectedPacket != null)
                     Padding(
@@ -800,5 +858,46 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     return const LatLng(40.4168, -3.7038);
+  }
+
+  Widget _sectionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
   }
 }
