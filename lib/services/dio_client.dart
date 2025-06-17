@@ -12,7 +12,7 @@ class DioClient {
 
   DioClient._internal() {
     // Configuración base
-    _dio.options.baseUrl = 'http://192.168.1.144:4000/api'; // Cambia esto por tu URL base
+    _dio.options.baseUrl = 'http://192.168.1.44:4000/api'; // Cambia esto por tu URL base
     _dio.options.connectTimeout = const Duration(seconds: 10); // Tiempo de espera de conexión
     _dio.options.receiveTimeout = const Duration(seconds: 10); // Tiempo de espera de respuesta
 

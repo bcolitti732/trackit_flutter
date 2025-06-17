@@ -28,7 +28,7 @@ class AuthService {
 
   static String get _baseUrl {
     const localUrl = 'http://localhost:4000/api/auth';
-    const androidUrl = 'http://192.168.1.144:4000/api/auth';
+    const androidUrl = 'http://192.168.1.44:4000/api/auth';
 
     if (kIsWeb) {
       return localUrl;

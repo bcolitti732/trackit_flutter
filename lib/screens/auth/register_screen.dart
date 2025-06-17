@@ -20,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final phoneController = TextEditingController();
   final birthdateController = TextEditingController();
 
-  final String baseUrl = 'http://192.168.1.144:4000/api/auth/register';
+  final String baseUrl = 'http://192.168.1.44:4000/api/auth/register';
 
   void registerUser(BuildContext context) async {
     final loc = AppLocalizations.of(context)!;

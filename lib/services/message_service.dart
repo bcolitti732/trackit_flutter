@@ -11,7 +11,7 @@ class MessageService {
     if (kIsWeb) {
       return 'http://localhost:4000/api/Messages';
     } else if (Platform.isAndroid) {
-      return 'http://192.168.1.144:4000/api/Messages';
+      return 'http://192.168.1.44:4000/api/Messages';
     } else {
       return 'http://192.168.1.144:4000/api/Messages';
     }

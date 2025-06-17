@@ -42,7 +42,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   Future<void> _sendIdTokenToBackend(String idToken) async {
     if (!mounted) return;
 
@@ -53,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.144:4000/api/auth/google/mobile'),
+        Uri.parse('http://192.168.1.44:4000/api/auth/google/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );
@@ -142,99 +141,113 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Center(
+      // Aquí va el gradiente azul/blanco de fondo
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFE3F0FF), // blanco azulado
+                  Color(0xFFB6E0FE), // azul claro
+                  Color(0xFF6CA8F1), // azul medio
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 750),
+                constraints: const BoxConstraints(maxWidth: 400),
                 child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  color: theme.cardColor,
+                  elevation: 10,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  color: theme.cardColor.withOpacity(0.93),
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 36.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.asset('lib/images/image.png', height: 100),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Welcome back, we missed you!',
-                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Please log in to continue',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset('lib/images/image.png', height: 90),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
+                        Text(
+                          '¡Bienvenido de nuevo!',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 26,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Inicia sesión para continuar',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
                         MyTextfield(
                           controller: emailController,
-                          hintText: 'Email',
+                          hintText: 'Correo electrónico',
                           obscureText: false,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                         MyTextfield(
                           controller: passwordController,
-                          hintText: 'Password',
+                          hintText: 'Contraseña',
                           obscureText: true,
                         ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'Forgot your password?',
-                            style: TextStyle(color: theme.colorScheme.primary),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
                         MyButton(
-                          text: 'Login',
+                          text: 'Iniciar sesión',
                           onTap: _handleLogin,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 22),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Not a member?',
-                              style: theme.textTheme.bodyMedium,
+                              '¿No tienes cuenta?',
+                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             MouseRegion(
                               cursor: SystemMouseCursors.click,
                               child: GestureDetector(
                                 onTap: () => context.go('/register'),
                                 child: Text(
-                                  'Register',
+                                  'Regístrate',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 32),
                         Row(
                           children: [
                             Expanded(child: Divider(color: Colors.grey[400])),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 10.0),
-                              child: Text('Or continue with'),
+                              child: Text('O continúa con'),
                             ),
                             Expanded(child: Divider(color: Colors.grey[400])),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                         if (_isLoading)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
@@ -248,7 +261,7 @@ class _LoginPageState extends State<LoginPage> {
                               style: const TextStyle(color: Colors.red),
                             ),
                           ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         GoogleSignInButton(
                           onSignInSuccess: (idToken) => _sendIdTokenToBackend(idToken),
                           onSignInError: (error) {
@@ -264,7 +277,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
