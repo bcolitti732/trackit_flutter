@@ -11,6 +11,7 @@ class User {
   final bool isProfileComplete;
   final String role;
   final Map<String, dynamic>? deliveryProfile;
+  final String? location;
 
   User({
     this.id,
@@ -23,6 +24,7 @@ class User {
     required this.isProfileComplete,
     required this.role,
     this.deliveryProfile,
+    this.location,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class User {
       isProfileComplete: json['isProfileComplete'] ?? false,
       role: json['role'] ?? 'user',
       deliveryProfile: json['deliveryProfile'],
+      location: json['location'],
     );
   }
 
@@ -58,6 +61,7 @@ class User {
       'isProfileComplete': isProfileComplete,
       'role': role,
       if (deliveryProfile != null) 'deliveryProfile': deliveryProfile,
+      if (location != null) 'location': location,
     };
   }
 }

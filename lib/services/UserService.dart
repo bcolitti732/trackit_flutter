@@ -5,6 +5,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/dio_client.dart';
 import '../models/user.dart';
 import '../models/packet.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
+import '../services/auth_service.dart';
 
 class UserService {
   static String get baseUrl {
@@ -20,15 +24,18 @@ class UserService {
   static Future<List<User>> getUsers({int page = 1, int limit = 10}) async {
     try {
       final url = Uri.parse('$baseUrl?page=$page&limit=$limit');
+      final token = await AuthService.getAccessToken();
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-
         final List<dynamic> usersJson = data['data'];
         return usersJson.map((json) => User.fromJson(json)).toList();
       } else {
@@ -90,13 +97,17 @@ class UserService {
   static Future<User> getCurrentUser() async {
     try {
       final dio = DioClient().dio;
-      final response = await dio.get('/users/me'); // El interceptor añade el token automáticamente
+      final response = await dio.get(
+        '/users/me',
+      ); // El interceptor añade el token automáticamente
 
       if (response.statusCode == 200) {
         final data = response.data; // `response.data` ya es un objeto JSON
         return User.fromJson(data);
       } else {
-        throw Exception('Error al obtener el usuario actual: ${response.statusCode}');
+        throw Exception(
+          'Error al obtener el usuario actual: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error al obtener el usuario actual: $e');
@@ -106,13 +117,18 @@ class UserService {
   static Future<List<Packet>> getUserPackets(String userId) async {
     try {
       final dio = DioClient().dio; // Obtén la instancia de Dio configurada
-      final response = await dio.get('/users/$userId/packets'); // El interceptor añade el token automáticamente
+      final response = await dio.get(
+        '/users/$userId/packets',
+      ); // El interceptor añade el token automáticamente
 
       if (response.statusCode == 200) {
-        final List<dynamic> packetsJson = response.data; // `response.data` ya es un objeto JSON
+        final List<dynamic> packetsJson =
+            response.data; // `response.data` ya es un objeto JSON
         return packetsJson.map((json) => Packet.fromJson(json)).toList();
       } else {
-        throw Exception('Error al obtener los paquetes del usuario: ${response.statusCode}');
+        throw Exception(
+          'Error al obtener los paquetes del usuario: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Error al obtener los paquetes del usuario: $e');
@@ -121,40 +137,147 @@ class UserService {
 
   static Future<Packet> getPacketById(String packetId) async {
     try {
-      final dio = DioClient().dio; // Usa Dio para manejar el token automáticamente
+      final dio =
+          DioClient().dio; // Usa Dio para manejar el token automáticamente
       final response = await dio.get('/packets/$packetId');
 
       if (response.statusCode == 200) {
+        if (response.data == null || response.data is! Map<String, dynamic>) {
+          print('Respuesta del servidor: ${response.data}');
+          throw Exception('La respuesta del servidor no es válida');
+        }
         return Packet.fromJson(response.data);
       } else {
+        print('Código de estado: ${response.statusCode}');
         throw Exception('Error al obtener el paquete: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error al obtener el paquete: $e');
       throw Exception('Error al obtener el paquete: $e');
     }
   }
 
   static Future<List<Packet>> getAllPackets() async {
-  final response = await http.get(Uri.parse('http://localhost:4000/api/packets'));
-  if (response.statusCode == 200) {
-    final decoded = jsonDecode(response.body);
-    final List<dynamic> data = decoded is List ? decoded : decoded['data'];
-    return data.map((json) => Packet.fromJson(json)).toList();
-  } else {
-    throw Exception('Error al obtener todos los paquetes');
+    final response = await http.get(
+      Uri.parse('http://localhost:4000/api/packets'),
+    );
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> data = decoded is List ? decoded : decoded['data'];
+      return data.map((json) => Packet.fromJson(json)).toList();
+    } else {
+      throw Exception('Error al obtener todos los paquetes');
+    }
   }
-}
 
-static Future<void> assignPacketToDelivery(String userId, String packetId) async {
-  print('Llamando a backend para asignar paquete...');
-  final response = await http.post(
-    Uri.parse('http://localhost:4000/api/users/assign-packet'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'userId': userId, 'packetId': packetId}),
-  );
-  print('Respuesta backend: ${response.statusCode} - ${response.body}');
-  if (response.statusCode != 200) {
-    throw Exception('Error al asignar el paquete: ${response.body}');
+  static Future<void> assignPacketToDelivery(
+    String userId,
+    String packetId,
+  ) async {
+    print('Llamando a backend para asignar paquete...');
+    final response = await http.post(
+      Uri.parse('http://localhost:4000/api/users/assign-packet'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'userId': userId, 'packetId': packetId}),
+    );
+    print('Respuesta backend: ${response.statusCode} - ${response.body}');
+    if (response.statusCode != 200) {
+      throw Exception('Error al asignar el paquete: ${response.body}');
+    }
   }
-}
+
+  static Future<void> updatePacketStatus(
+    String packetId,
+    String newStatus,
+  ) async {
+    final response = await http.put(
+      Uri.parse('http://localhost:4000/api/packets/$packetId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'status': newStatus}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Error al actualizar el estado del paquete: ${response.body}',
+      );
+    }
+  }
+
+  static Future<List<Packet>> getOptimizedRoute(User user) async {
+    try {
+      final dio = DioClient().dio;
+      final response = await dio.get(
+        '/users/${user.id}/optimized-route',
+        queryParameters:
+            user.location != null && user.location!.isNotEmpty
+                ? {'startLocation': user.location}
+                : null,
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> packetsJson = response.data;
+        return packetsJson.map((json) => Packet.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Error al obtener la ruta optimizada: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error al obtener la ruta optimizada: $e');
+    }
+  }
+
+  static Future<void> updateDeliveryQueue(
+    String userId,
+    List<String> queue,
+  ) async {
+    final dio = DioClient().dio;
+    print('Enviando queue: $queue');
+    final response = await dio.put(
+      '/users/$userId/delivery-queue',
+      data: {'queue': queue}, // <-- CAMBIO AQUÍ
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Error al actualizar la cola de entrega: ${response.data}',
+      );
+    }
+  }
+
+  Future<List<LatLng>> fetchRouteFromORS(
+    List<LatLng> points,
+    String apiKey,
+  ) async {
+    final coordinates = points.map((p) => [p.longitude, p.latitude]).toList();
+    final url = Uri.parse(
+      'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+    );
+    final response = await http.post(
+      url,
+      headers: {'Authorization': apiKey, 'Content-Type': 'application/json'},
+      body: jsonEncode({'coordinates': coordinates}),
+    );
+    if (response.statusCode == 200) {
+      final geojson = jsonDecode(response.body);
+      final coords = geojson['features'][0]['geometry']['coordinates'] as List;
+      return coords.map<LatLng>((c) => LatLng(c[1], c[0])).toList();
+    } else {
+      throw Exception('Error obteniendo la ruta: ${response.body}');
+    }
+  }
+
+  static Future<User?> getDeliveryForPacket(String packetId) async {
+    final users = await getUsers(
+      page: 1,
+      limit: 1000,
+    ); // O ajusta el límite según tu base de datos
+    for (final user in users) {
+      if (user.role == "delivery" &&
+          user.deliveryProfile != null &&
+          (user.deliveryProfile!['assignedPacket'] as List).contains(
+            packetId,
+          )) {
+        return user;
+      }
+    }
+    return null;
+  }
 }
