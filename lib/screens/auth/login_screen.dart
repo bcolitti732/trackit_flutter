@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:html' as html; // Importa para usar el DOM en Flutter Web
-import 'dart:js' as js; // Importa dart:js para usar context.callMethod
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -37,52 +35,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _initializeGoogleSignInButton() {
-    if (html.document.getElementById('gsi-client') == null) {
-      final script = html.ScriptElement()
-        ..id = 'gsi-client'
-        ..src = 'https://accounts.google.com/gsi/client'
-        ..async = true
-        ..defer = true;
-      html.document.head?.append(script);
-
-      script.onLoad.listen((event) {
-        _renderGoogleButton();
-      });
-    } else {
-      _renderGoogleButton();
-    }
-  }
-
-  void _renderGoogleButton() {
-    final google = js.context['google'];
-    if (google != null) {
-      google['accounts']['id'].callMethod('initialize', [js.JsObject.jsify({
-        'client_id': '517367796264-iet14ll00r610n659l2vonr6auk9sauu.apps.googleusercontent.com',
-        'callback': js.allowInterop(_handleCredentialResponse),
-      })]);
-
-      final buttonContainer = html.document.getElementById('google-signin-container');
-      if (buttonContainer != null) {
-        buttonContainer.children.clear();
-        google['accounts']['id'].callMethod('renderButton', [
-          buttonContainer,
-          js.JsObject.jsify({
-            'theme': 'outline',
-            'size': 'large',
-          }),
-        ]);
-      }
-    } else {
-      Future.delayed(const Duration(milliseconds: 200), _renderGoogleButton);
-    }
-  }
-
-  void _handleCredentialResponse(dynamic response) {
-    if (!mounted) return;
-
-    final credential = response['credential'];
-    if (credential != null) {
-      _sendIdTokenToBackend(credential);
+    if (kIsWeb) {
+      // Código específico para Flutter Web
+      print("Inicializando Google Sign-In Button para Web");
+      // Aquí puedes implementar lógica específica para web usando paquetes compatibles.
     }
   }
 
@@ -97,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:4000/api/auth/google/mobile'),
+        Uri.parse('http://192.168.1.144:4000/api/auth/google/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );

@@ -31,25 +31,37 @@ class _PacketMapState extends State<PacketMap> {
   }
 
   Future<void> _getRoute() async {
-    final start = widget.current ?? widget.origin;
-    final end = widget.destination;
-    final url =
-        'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson';
+    try {
+      final start = widget.current ?? widget.origin;
+      final end = widget.destination;
+      final url =
+          'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson';
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final coords = data['routes'][0]['geometry']['coordinates'] as List;
-      setState(() {
-        routePoints = coords
-            .map((point) => LatLng(point[1].toDouble(), point[0].toDouble()))
-            .toList();
-        if (data['routes'][0]['duration'] != null) {
-          final duration = data['routes'][0]['duration'];
-          final etaDate = DateTime.now().add(Duration(seconds: duration.round()));
-          eta = "${etaDate.hour.toString().padLeft(2, '0')}:${etaDate.minute.toString().padLeft(2, '0')}";
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['routes'] != null && data['routes'].isNotEmpty) {
+          final coords = data['routes'][0]['geometry']['coordinates'] as List;
+          setState(() {
+            routePoints = coords
+                .map((point) => LatLng(point[1].toDouble(), point[0].toDouble()))
+                .toList();
+            if (data['routes'][0]['duration'] != null) {
+              final duration = data['routes'][0]['duration'];
+              final etaDate =
+                  DateTime.now().add(Duration(seconds: duration.round()));
+              eta =
+                  "${etaDate.hour.toString().padLeft(2, '0')}:${etaDate.minute.toString().padLeft(2, '0')}";
+            }
+          });
+        } else {
+          print('No se encontraron rutas en la respuesta de la API.');
         }
-      });
+      } else {
+        print('Error al obtener la ruta: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al calcular la ruta: $e');
     }
   }
 
@@ -105,10 +117,21 @@ class _PacketMapState extends State<PacketMap> {
             ],
           ),
         ),
+        if (routePoints.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Text(
+              'No se pudo calcular la ruta.',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
         if (eta != null)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
-            child: Text('Hora estimada de llegada: $eta', style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              'Hora estimada de llegada: $eta',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
       ],
     );

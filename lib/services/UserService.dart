@@ -15,9 +15,9 @@ class UserService {
     if (kIsWeb) {
       return 'http://localhost:4000/api/users';
     } else if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:4000/api/users';
+      return 'http://192.168.1.144:4000/api/users';
     } else {
-      return 'http://localhost:4000/api/users';
+      return 'localhost:4000/api/users';
     }
   }
 
@@ -160,7 +160,7 @@ class UserService {
 
   static Future<List<Packet>> getAllPackets() async {
     final response = await http.get(
-      Uri.parse('http://localhost:4000/api/packets'),
+      Uri.parse('http://192.168.1.144:4000/api/packets'),
     );
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
@@ -177,7 +177,7 @@ class UserService {
   ) async {
     print('Llamando a backend para asignar paquete...');
     final response = await http.post(
-      Uri.parse('http://localhost:4000/api/users/assign-packet'),
+      Uri.parse('http://192.168.1.144:4000/api/users/assign-packet'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'userId': userId, 'packetId': packetId}),
     );
@@ -192,7 +192,7 @@ class UserService {
     String newStatus,
   ) async {
     final response = await http.put(
-      Uri.parse('http://localhost:4000/api/packets/$packetId'),
+      Uri.parse('http://192.168.1.144:4000/api/packets/$packetId'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'status': newStatus}),
     );

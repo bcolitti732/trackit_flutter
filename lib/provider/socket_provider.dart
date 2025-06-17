@@ -12,7 +12,7 @@ class SocketProvider with ChangeNotifier {
   const storage = FlutterSecureStorage();
   final token = await storage.read(key: 'flutter.accessToken');
 
-  _socket = IO.io('http://localhost:4005', <String, dynamic>{
+  _socket = IO.io('http://192.168.1.144:4005', <String, dynamic>{
     'transports': <String>['websocket'],
     'autoConnect': false,
     'auth': {

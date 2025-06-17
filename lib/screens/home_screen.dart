@@ -59,17 +59,21 @@ class _HomeScreenState extends State<HomeScreen> {
         currentUser = user;
       });
       Provider.of<UserProvider>(context, listen: false).setCurrentUser(user);
+
+      final socketProvider = Provider.of<SocketProvider>(context, listen: false);
+
+      // Ensure the socket is connected before emitting events
+      if (!socketProvider.socket.connected) {
+        await socketProvider.connect();
+      }
+
       final token = await AuthService.getAccessToken();
       if (token != null && user.id != null && user.id!.isNotEmpty) {
-          
-          final payload = parseJwt(token);
-          print('Parsed JWT payload: $payload');
-          if (payload != null && payload['email'] != null) {    
-            SocketProvider socketProvider = Provider.of<SocketProvider>(context, listen: false);  
-            print(payload['email']);    
-            socketProvider.emit('email', [payload['email'], payload['role']]);
-          }  
-        //_setupSocketNotifications(token, user.id!);
+        final payload = parseJwt(token);
+        print('Parsed JWT payload: $payload');
+        if (payload != null && payload['email'] != null) {
+          socketProvider.emit('email', [payload['email'], payload['role']]);
+        }
       }
 
       List<Packet> userPackets = [];
@@ -186,10 +190,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserAndPackets(context).then((_) {
+    _initializeSocketAndLoadData();
+  }
+
+  Future<void> _initializeSocketAndLoadData() async {
+    try {
       final socketProvider = Provider.of<SocketProvider>(context, listen: false);
 
-      // Escucha el evento de mensajes no vistos
+      // Connect the socket and wait for it to initialize
+      await socketProvider.connect();
+
+      // Listen for socket events
       socketProvider.on('unseen_messages', (data) {
         print('Unseen messages data: $data');
         if (data is List && data.isNotEmpty) {
@@ -197,16 +208,15 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
 
-      // Escucha el evento de paquetes asignados
       socketProvider.on('packet_assigned', (data) {
         _showNotification();
       });
 
-      // Conecta el socket si no está conectado
-      if (!socketProvider.socket.connected) {
-        socketProvider.connect();
-      }
-    });
+      // Load user and packets after socket connection is established
+      await _loadUserAndPackets(context);
+    } catch (e) {
+      print('Error initializing socket or loading data: $e');
+    }
   }
   void _showNotification() {
     if (!mounted) return;
@@ -332,196 +342,170 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Bienvenido repartidor, ${currentUser!.name}!',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                   ),
                   const SizedBox(height: 32),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'En almacén',
-                          almacenPackets,
-                          false,
-                          showAddButton: true,
-                          centerContent: true,
-                        ),
+                      _buildPacketColumn(
+                        context,
+                        'En almacén',
+                        almacenPackets,
+                        false,
+                        showAddButton: true,
+                        centerContent: true,
                       ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Asignados a ti',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
+                      const SizedBox(height: 16), // Espaciado entre secciones
+                      Column(
+                        children: [
+                          Text(
+                            'Asignados a ti',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          if (!isReordering)
+                            ElevatedButton(
+                              onPressed: () {
+                                _startReorder(assignedPackets);
+                              },
+                              child: const Text('Reordenar cola'),
+                            ),
+                          if (isReordering) ...[
+                            ElevatedButton(
+                              onPressed: _saveReorder,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                              ),
+                              child: const Text('Guardar'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: _cancelReorder,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              child: const Text('Cancelar'),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          if (isReordering)
+                            Column(
+                              children: List.generate(reorderQueue.length, (index) {
+                                final packet = reorderQueue[index];
+                                return Card(
+                                  elevation: 8,
+                                  color: Theme.of(context).cardColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                if (!isReordering)
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 8,
+                                  ),
+                                  child: ListTile(
+                                    leading: Text('#${index + 1}'),
+                                    title: Text(packet.name),
+                                    subtitle: Text(packet.description),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.arrow_upward),
+                                          onPressed: index == 0
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    final temp =
+                                                        reorderQueue[index - 1];
+                                                    reorderQueue[index - 1] =
+                                                        reorderQueue[index];
+                                                    reorderQueue[index] = temp;
+                                                  });
+                                                },
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.arrow_downward),
+                                          onPressed: index == reorderQueue.length - 1
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    final temp =
+                                                        reorderQueue[index + 1];
+                                                    reorderQueue[index + 1] =
+                                                        reorderQueue[index];
+                                                    reorderQueue[index] = temp;
+                                                  });
+                                                },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                            )
+                          else
+                            _buildPacketColumn(
+                              context,
+                              '',
+                              assignedPackets,
+                              false,
+                              centerContent: true,
+                            ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () async {
+                              await _optimizarRuta();
+                            },
+                            child: const Text('Optimizar Ruta'),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: assignedPackets.isEmpty
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _showRouteMap = true;
+                                    });
+                                  },
+                            child: const Text('Ver Ruta'),
+                          ),
+                          if (_showRouteMap)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 24.0),
+                              child: Column(
+                                children: [
+                                  RouteMapWidget(
+                                    queue: assignedPackets,
+                                    startLocation: currentUser?.location,
+                                  ),
+                                  const SizedBox(height: 12),
                                   ElevatedButton(
                                     onPressed: () {
-                                      _startReorder(assignedPackets);
+                                      setState(() {
+                                        _showRouteMap = false;
+                                      });
                                     },
-                                    child: const Text('Reordenar cola'),
-                                  ),
-                                if (isReordering) ...[
-                                  ElevatedButton(
-                                    onPressed: _saveReorder,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                    ),
-                                    child: const Text('Guardar'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: _cancelReorder,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                    ),
-                                    child: const Text('Cancelar'),
+                                    child: const Text('Cerrar Ruta'),
                                   ),
                                 ],
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            if (isReordering)
-                              Column(
-                                children: List.generate(reorderQueue.length, (
-                                  index,
-                                ) {
-                                  final packet = reorderQueue[index];
-                                  return Card(
-                                    elevation: 8,
-                                    color: Theme.of(context).cardColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                      horizontal: 8,
-                                    ),
-                                    child: ListTile(
-                                      leading: Text('#${index + 1}'),
-                                      title: Text(packet.name),
-                                      subtitle: Text(packet.description),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.arrow_upward,
-                                            ),
-                                            onPressed:
-                                                index == 0
-                                                    ? null
-                                                    : () {
-                                                      setState(() {
-                                                        final temp =
-                                                            reorderQueue[index -
-                                                                1];
-                                                        reorderQueue[index -
-                                                                1] =
-                                                            reorderQueue[index];
-                                                        reorderQueue[index] =
-                                                            temp;
-                                                      });
-                                                    },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.arrow_downward,
-                                            ),
-                                            onPressed:
-                                                index == reorderQueue.length - 1
-                                                    ? null
-                                                    : () {
-                                                      setState(() {
-                                                        final temp =
-                                                            reorderQueue[index +
-                                                                1];
-                                                        reorderQueue[index +
-                                                                1] =
-                                                            reorderQueue[index];
-                                                        reorderQueue[index] =
-                                                            temp;
-                                                      });
-                                                    },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              )
-                            else
-                              _buildPacketColumn(
-                                context,
-                                '',
-                                assignedPackets,
-                                false,
-                                centerContent: true,
                               ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () async {
-                                await _optimizarRuta();
-                              },
-                              child: const Text('Optimizar Ruta'),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed:
-                                  assignedPackets.isEmpty
-                                      ? null
-                                      : () {
-                                        setState(() {
-                                          _showRouteMap = true;
-                                        });
-                                      },
-                              child: const Text('Ver Ruta'),
-                            ),
-                            if (_showRouteMap)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 24.0),
-                                child: Column(
-                                  children: [
-                                    RouteMapWidget(
-                                      queue: assignedPackets,
-                                      startLocation: currentUser?.location,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _showRouteMap = false;
-                                        });
-                                      },
-                                      child: const Text('Cerrar Ruta'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
-                      Expanded(
-                        child: _buildPacketColumn(
-                          context,
-                          'Entregados por ti',
-                          deliveredPackets,
-                          false,
-                          centerContent: true,
-                        ),
+                      const SizedBox(height: 16), // Espaciado entre secciones
+                      _buildPacketColumn(
+                        context,
+                        'Entregados por ti',
+                        deliveredPackets,
+                        false,
+                        centerContent: true,
                       ),
                     ],
                   ),
@@ -531,10 +515,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: PacketMap(
                         origin: _toLatLng(selectedPacket!.origin),
                         destination: _toLatLng(selectedPacket!.destination),
-                        current:
-                            selectedPacket!.location != null
-                                ? _toLatLng(selectedPacket!.location)
-                                : null,
+                        current: selectedPacket!.location != null
+                            ? _toLatLng(selectedPacket!.location)
+                            : null,
                       ),
                     ),
                 ],
@@ -607,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      ),
+      )
     );
   }
 
