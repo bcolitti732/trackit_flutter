@@ -52,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.44:4000/api/auth/google/mobile'),
+        Uri.parse('https://ea4-api.upc.edu/api/auth/google/mobile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );

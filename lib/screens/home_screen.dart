@@ -601,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
+            constraints: const BoxConstraints(maxWidth: 900),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -611,26 +611,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildPacketColumn(
-                      context,
-                      AppLocalizations.of(context)!.packagesInStorage,
-                      almacenPackets,
-                      false,
-                      centerContent: true,
-                    ),
-                    _buildPacketColumn(
-                      context,
-                      AppLocalizations.of(context)!.packagesInDelivery,
-                      repartoPackets,
-                      true,
-                      centerContent: true,
-                    ),
-                  ],
+                _sectionCard(
+                  context,
+                  icon: Icons.store,
+                  title: AppLocalizations.of(context)!.packagesInStorage,
+                  child: _buildPacketColumn(
+                    context,
+                    '',
+                    almacenPackets,
+                    false,
+                    centerContent: true,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _sectionCard(
+                  context,
+                  icon: Icons.local_shipping,
+                  title: AppLocalizations.of(context)!.packagesInDelivery,
+                  child: _buildPacketColumn(
+                    context,
+                    '',
+                    repartoPackets,
+                    true,
+                    centerContent: true,
+                  ),
                 ),
                 if (selectedPacket != null)
                   Padding(
